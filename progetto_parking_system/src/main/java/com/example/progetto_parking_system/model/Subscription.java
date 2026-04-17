@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
 
+import com.example.progetto_parking_system.enums.SubscriptionType;
+
 @Entity
 @Data
 public class Subscription {

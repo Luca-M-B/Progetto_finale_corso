@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+import com.example.progetto_parking_system.enums.ReservationStatus;
+
 @Entity
 @Data
 public class Reservation {
