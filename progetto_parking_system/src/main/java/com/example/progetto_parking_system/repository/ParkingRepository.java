@@ -1,5 +1,9 @@
 package com.example.progetto_parking_system.repository;
 
-public class ParkingRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.progetto_parking_system.model.Parking;
+
+public interface ParkingRepository extends JpaRepository<Parking, Long> {
 
 }
