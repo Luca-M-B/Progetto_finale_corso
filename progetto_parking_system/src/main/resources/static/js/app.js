@@ -1,4 +1,5 @@
 const API_BASE = 'http://localhost:8080';
+//const API_BASE = 'http://localhost:8080';
 
 // App State
 let appState = {
@@ -22,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('register-form').addEventListener('submit', handleRegister);
-    
+
     const vForm = document.getElementById('add-vehicle-form');
     if (vForm) {
         vForm.addEventListener('submit', handleAddVehicle);
@@ -48,7 +49,7 @@ function showView(viewId) {
 function switchAuthTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-    
+
     document.getElementById(`tab-${tab}`).classList.add('active');
     document.getElementById(`${tab}-form`).classList.add('active');
 }
@@ -57,7 +58,7 @@ async function handleLogin(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button');
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Attendere...';
-    
+
     try {
         const payload = {
             username: document.getElementById('login-username').value,
@@ -73,16 +74,16 @@ async function handleLogin(e) {
         if (!res.ok) throw new Error('Credenziali non valide');
 
         const data = await res.json();
-        
+
         // Update State
         appState.token = data.token;
         appState.username = payload.username;
         localStorage.setItem('token', data.token);
         localStorage.setItem('username', payload.username);
-        
+
         showToast('Login effettuato con successo!', 'success');
         checkAuthState();
-        
+
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
@@ -115,7 +116,7 @@ async function handleRegister(e) {
 
         showToast('Registrazione completata! Ora puoi fare login.', 'success');
         switchAuthTab('login');
-        
+
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
@@ -136,12 +137,12 @@ function logout() {
 function loadSection(section) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     const btn = document.querySelector(`button[onclick="loadSection('${section}')"]`);
-    if(btn) btn.classList.add('active');
+    if (btn) btn.classList.add('active');
 
     const pageTitle = document.getElementById('page-title');
     document.getElementById('vehicles-section').classList.add('hidden');
-    
-    switch(section) {
+
+    switch (section) {
         case 'dashboard':
             pageTitle.textContent = 'Dashboard Overview';
             document.querySelector('.dashboard-stats').classList.remove('hidden');
@@ -164,7 +165,7 @@ function loadSection(section) {
 function fetchData() {
     // Reloads current active section
     const activeNav = document.querySelector('.nav-item.active').getAttribute('onclick');
-    if(activeNav) {
+    if (activeNav) {
         eval(activeNav);
     }
 }
@@ -183,12 +184,12 @@ async function fetchWithAuth(url, options = {}) {
     };
 
     const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
-    
+
     if (response.status === 401 || response.status === 403) {
         logout();
         throw new Error('Sessione scaduta o accesso negato');
     }
-    
+
     return response;
 }
 
@@ -199,10 +200,10 @@ async function fetchDashboardStats() {
             fetchWithAuth('/api/vehicles'),
             fetchWithAuth('/api/reservations').catch(() => ({ json: () => [] })) // fallbacks if endpoint fails
         ]);
-        
+
         const vehicles = await vehiclesRes.json();
         let reservations = [];
-        try { reservations = await reservationsRes.json(); } catch(e){}
+        try { reservations = await reservationsRes.json(); } catch (e) { }
 
         document.getElementById('stat-vehicles').textContent = vehicles.length || 0;
         document.getElementById('stat-reservations').textContent = reservations.length || 0;
@@ -214,12 +215,12 @@ async function fetchDashboardStats() {
 async function fetchVehicles() {
     const grid = document.getElementById('vehicles-grid');
     grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
-    
+
     try {
         const res = await fetchWithAuth('/api/vehicles');
         const vehicles = await res.json();
-        
-        if(vehicles.length === 0) {
+
+        if (vehicles.length === 0) {
             grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color: var(--text-muted)">Nessun veicolo trovato. Aggiungine uno.</div>';
             return;
         }
@@ -248,14 +249,14 @@ function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     let icon = 'fa-info-circle';
     if (type === 'success') icon = 'fa-check-circle';
     if (type === 'error') icon = 'fa-exclamation-circle';
-    
+
     toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
     container.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.3s ease forwards';
         setTimeout(() => toast.remove(), 300);
@@ -276,7 +277,7 @@ async function handleAddVehicle(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Salvataggio...';
-    
+
     try {
         const payload = {
             targa: document.getElementById('veh-targa').value,
@@ -290,11 +291,11 @@ async function handleAddVehicle(e) {
         });
 
         if (!res.ok) throw new Error('Errore nel salvataggio del veicolo');
-        
+
         showToast('Veicolo aggiunto con successo!', 'success');
         closeAddVehicleModal();
         fetchVehicles(); // Reload vehicles
-        
+
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
