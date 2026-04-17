@@ -4,37 +4,37 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.progetto_parking_system.model.Subscription;
-import com.example.progetto_parking_system.service.SubscriptionService;
+import com.example.progetto_parking_system.model.ExtraService;
+import com.example.progetto_parking_system.service.ExtraServiceService;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/subscriptions")
-public class SubscriptionController {
+@RequestMapping("/api/extra-services")
+public class ExtraServiceController {
 
     @Autowired
-    private SubscriptionService service;
+    private ExtraServiceService service;
 
     @GetMapping
-    public List<Subscription> getAll() {
+    public List<ExtraService> getAll() {
         return service.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Subscription> getById(@PathVariable Long id) {
+    public ResponseEntity<ExtraService> getById(@PathVariable Long id) {
         return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Subscription create(@RequestBody Subscription entity) {
+    public ExtraService create(@RequestBody ExtraService entity) {
         return service.save(entity);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Subscription> update(@PathVariable Long id, @RequestBody Subscription entity) {
+    public ResponseEntity<ExtraService> update(@PathVariable Long id, @RequestBody ExtraService entity) {
         return service.findById(id)
                 .map(existingEntity -> {
                     entity.setId(id);

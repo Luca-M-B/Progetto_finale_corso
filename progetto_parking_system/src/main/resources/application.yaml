@@ -3,7 +3,7 @@ spring:
     name: progetto_parking_system
 
   datasource:
-    url: jdbc:mysql://localhost:3306/todolist?createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:3306/parking_system_db?createDatabaseIfNotExist=true
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver

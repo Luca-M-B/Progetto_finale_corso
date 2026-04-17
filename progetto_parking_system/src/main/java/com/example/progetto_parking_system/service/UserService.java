@@ -3,27 +3,27 @@ package com.example.progetto_parking_system.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.example.progetto_parking_system.model.ExtraService;
-import com.example.progetto_parking_system.repository.ExtraServiceRepository;
+import com.example.progetto_parking_system.model.User;
+import com.example.progetto_parking_system.repository.UserRepository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
-public class ExtraServiceService {
+public class UserService {
 
     @Autowired
-    private ExtraServiceRepository repository;
+    private UserRepository repository;
 
-    public List<ExtraService> findAll() {
+    public List<User> findAll() {
         return repository.findAll();
     }
 
-    public Optional<ExtraService> findById(Long id) {
+    public Optional<User> findById(Long id) {
         return repository.findById(id);
     }
 
-    public ExtraService save(ExtraService entity) {
+    public User save(User entity) {
         return repository.save(entity);
     }
 

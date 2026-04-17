@@ -4,37 +4,37 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.progetto_parking_system.model.Subscription;
-import com.example.progetto_parking_system.service.SubscriptionService;
+import com.example.progetto_parking_system.model.User;
+import com.example.progetto_parking_system.service.UserService;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/subscriptions")
-public class SubscriptionController {
+@RequestMapping("/api/users")
+public class UserController {
 
     @Autowired
-    private SubscriptionService service;
+    private UserService service;
 
     @GetMapping
-    public List<Subscription> getAll() {
+    public List<User> getAll() {
         return service.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Subscription> getById(@PathVariable Long id) {
+    public ResponseEntity<User> getById(@PathVariable Long id) {
         return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Subscription create(@RequestBody Subscription entity) {
+    public User create(@RequestBody User entity) {
         return service.save(entity);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Subscription> update(@PathVariable Long id, @RequestBody Subscription entity) {
+    public ResponseEntity<User> update(@PathVariable Long id, @RequestBody User entity) {
         return service.findById(id)
                 .map(existingEntity -> {
                     entity.setId(id);
