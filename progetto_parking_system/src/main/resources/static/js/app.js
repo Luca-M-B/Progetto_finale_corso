@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('register-form').addEventListener('submit', handleRegister);
+    
+    const vForm = document.getElementById('add-vehicle-form');
+    if (vForm) {
+        vForm.addEventListener('submit', handleAddVehicle);
+    }
 }
 
 // Authentication Logic
@@ -255,4 +260,44 @@ function showToast(message, type = 'info') {
         toast.style.animation = 'slideOut 0.3s ease forwards';
         setTimeout(() => toast.remove(), 300);
     }, 4000);
+}
+
+// Modal Control - Add Vehicle
+function openAddVehicleModal() {
+    document.getElementById('vehicle-modal').style.display = 'flex';
+}
+
+function closeAddVehicleModal() {
+    document.getElementById('vehicle-modal').style.display = 'none';
+    document.getElementById('add-vehicle-form').reset();
+}
+
+async function handleAddVehicle(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Salvataggio...';
+    
+    try {
+        const payload = {
+            targa: document.getElementById('veh-targa').value,
+            modello: document.getElementById('veh-modello').value,
+            tipo: document.getElementById('veh-tipo').value
+        };
+
+        const res = await fetchWithAuth('/api/vehicles', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('Errore nel salvataggio del veicolo');
+        
+        showToast('Veicolo aggiunto con successo!', 'success');
+        closeAddVehicleModal();
+        fetchVehicles(); // Reload vehicles
+        
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.innerHTML = 'Salva';
+    }
 }

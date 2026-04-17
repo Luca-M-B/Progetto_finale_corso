@@ -123,7 +123,7 @@
                 <div class="data-section mt-4 hidden" id="vehicles-section">
                     <div class="section-header">
                         <h3>I Miei Veicoli</h3>
-                        <button class="btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Aggiungi</button>
+                        <button class="btn-primary btn-sm" onclick="openAddVehicleModal()"><i class="fa-solid fa-plus"></i> Aggiungi</button>
                     </div>
                     <div class="grid-container" id="vehicles-grid">
                         <!-- Cards injected via JS -->
@@ -132,6 +132,33 @@
 
             </div>
         </main>
+    </div>
+
+    <!-- Modal Vehicle -->
+    <div id="vehicle-modal" class="view auth-container" style="display:none; position:fixed; z-index:9000; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+        <div class="glass-panel auth-box" style="margin: auto; max-height:90vh; overflow-y:auto;">
+            <div class="auth-header">
+                <h2>Aggiungi Veicolo</h2>
+            </div>
+            <form id="add-vehicle-form" class="auth-form active">
+                <div class="input-group">
+                    <label>Targa</label>
+                    <input type="text" id="veh-targa" required>
+                </div>
+                <div class="input-group">
+                    <label>Modello</label>
+                    <input type="text" id="veh-modello" required>
+                </div>
+                <div class="input-group">
+                    <label>Tipo (Auto, Moto...)</label>
+                    <input type="text" id="veh-tipo" required>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn-danger-outline" onclick="closeAddVehicleModal()">Annulla</button>
+                    <button type="submit" class="btn-primary" style="flex:1;">Salva</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="js/app.js"></script>
