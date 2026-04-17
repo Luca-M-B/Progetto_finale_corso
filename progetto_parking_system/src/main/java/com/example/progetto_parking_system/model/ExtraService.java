@@ -1,5 +1,18 @@
 package com.example.progetto_parking_system.model;
 
-public class ExtraService {
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.Data;
 
+@Entity
+@Data
+public class ExtraService {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name; // lavaggio, navetta
+    private double price;
 }
