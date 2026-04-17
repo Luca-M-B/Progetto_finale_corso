@@ -21,7 +21,9 @@ public class User {
     private String username;
     private String password;
     private String role; // USER, ADMIN
+    private String refreshToken;
 
     @OneToMany(mappedBy = "user")
     private List<Reservation> reservations;
+
 }
