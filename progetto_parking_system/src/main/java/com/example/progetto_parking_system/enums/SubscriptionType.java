@@ -1,5 +1,7 @@
 package com.example.progetto_parking_system.enums;
 
-public class SubscriptionType {
-
+public enum SubscriptionType {
+    MONTHLY,
+    TRY_MONTH,
+    YEARLY
 }
