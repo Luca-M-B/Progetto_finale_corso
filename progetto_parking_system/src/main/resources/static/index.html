@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkSync - Smart Parking Manager</title>
+    <meta name="description" content="Gestisci parcheggi, veicoli e abbonamenti con facilità.">
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Login/Register View -->
+    <div id="auth-view" class="view auth-container active">
+        <div class="glass-panel auth-box">
+            <div class="auth-header">
+                <i class="fa-solid fa-car-side logo-icon"></i>
+                <h1>Welcome to <span>ParkSync</span></h1>
+                <p>Accedi al sistema gestionale</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
+                <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Registrati</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <div class="input-group">
+                    <label for="login-username"><i class="fa-solid fa-user"></i> Username</label>
+                    <input type="text" id="login-username" required placeholder="Inserisci username">
+                </div>
+                <div class="input-group">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" id="login-password" required placeholder="Inserisci password">
+                </div>
+                <button type="submit" class="btn-primary">Accedi <i class="fa-solid fa-arrow-right"></i></button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form">
+                <div class="input-group">
+                    <label for="reg-username"><i class="fa-solid fa-user"></i> Username</label>
+                    <input type="text" id="reg-username" required placeholder="Scegli un username">
+                </div>
+                <div class="input-group">
+                    <label for="reg-password"><i class="fa-solid fa-lock"></i> Password</label>
+                    <input type="password" id="reg-password" required minlength="6" placeholder="Almeno 6 caratteri">
+                </div>
+                <div class="input-group">
+                    <label for="reg-role"><i class="fa-solid fa-id-badge"></i> Ruolo</label>
+                    <select id="reg-role">
+                        <option value="USER">Utente Standard</option>
+                        <option value="ADMIN">Amministratore</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary btn-accent">Registrati <i class="fa-solid fa-user-plus"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="dashboard-view" class="view dashboard-wrapper">
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-car-side"></i> ParkSync
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="loadSection('dashboard')">
+                    <i class="fa-solid fa-house"></i> Dashboard
+                </button>
+                <button class="nav-item" onclick="loadSection('vehicles')">
+                    <i class="fa-solid fa-car"></i> I Miei Veicoli
+                </button>
+                <button class="nav-item" onclick="loadSection('parkings')">
+                    <i class="fa-solid fa-square-parking"></i> Parcheggi
+                </button>
+                <button class="nav-item" onclick="loadSection('reservations')">
+                    <i class="fa-solid fa-calendar-check"></i> Prenotazioni
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <span id="display-username">Utente</span>
+                </div>
+                <button id="logout-btn" class="btn-danger-outline" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Esci
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-nav">
+                <h2 id="page-title">Dashboard Overview</h2>
+                <div class="header-actions">
+                    <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
+                    <button class="icon-btn" onclick="fetchData()"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+            </header>
+
+            <div class="content-area" id="main-content-area">
+                <!-- Data will be dynamically rendered here -->
+                <div class="dashboard-stats">
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon"><i class="fa-solid fa-car"></i></div>
+                        <div class="stat-details">
+                            <h3>Veicoli Registrati</h3>
+                            <p id="stat-vehicles">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card glass-panel">
+                        <div class="stat-icon purple"><i class="fa-solid fa-ticket"></i></div>
+                        <div class="stat-details">
+                            <h3>Prenotazioni Attive</h3>
+                            <p id="stat-reservations">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-section mt-4 hidden" id="vehicles-section">
+                    <div class="section-header">
+                        <h3>I Miei Veicoli</h3>
+                        <button class="btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Aggiungi</button>
+                    </div>
+                    <div class="grid-container" id="vehicles-grid">
+                        <!-- Cards injected via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
