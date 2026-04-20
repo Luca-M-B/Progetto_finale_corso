@@ -13,6 +13,8 @@ public class RegisterRequest {
     @Size(min = 6, message = "La password deve avere almeno 6 caratteri")
     private String password;
 
+    private String subscriptionType; // e.g. MONTHLY, QUARTERLY, YEARLY
+
     public String getUsername() {
         return username;
     }
@@ -27,5 +29,13 @@ public class RegisterRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getSubscriptionType() {
+        return subscriptionType;
+    }
+
+    public void setSubscriptionType(String subscriptionType) {
+        this.subscriptionType = subscriptionType;
     }
 }

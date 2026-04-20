@@ -15,7 +15,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/auth/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/auth/**", "/api/gate/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(httpBasic -> {

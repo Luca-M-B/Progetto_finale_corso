@@ -89,6 +89,27 @@ public class AuthController {
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
         newUser.setRole("USER");
 
+        if (request.getSubscriptionType() != null && !request.getSubscriptionType().isEmpty()) {
+            newUser.setActive(true);
+            newUser.setSubscriptionQrCode(UUID.randomUUID().toString());
+            
+            java.time.LocalDate now = java.time.LocalDate.now();
+            switch (request.getSubscriptionType().toUpperCase()) {
+                case "MONTHLY":
+                    newUser.setSubscriptionEndDate(now.plusMonths(1));
+                    break;
+                case "QUARTERLY":
+                    newUser.setSubscriptionEndDate(now.plusMonths(3));
+                    break;
+                case "YEARLY":
+                    newUser.setSubscriptionEndDate(now.plusYears(1));
+                    break;
+                default:
+                    newUser.setSubscriptionEndDate(now.plusMonths(1));
+                    break;
+            }
+        }
+
         userRepository.save(newUser);
 
         return ResponseEntity.status(HttpStatus.CREATED)

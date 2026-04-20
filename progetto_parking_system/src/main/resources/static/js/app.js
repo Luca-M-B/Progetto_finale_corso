@@ -99,7 +99,8 @@ async function handleRegister(e) {
     try {
         const payload = {
             username: document.getElementById('reg-username').value,
-            password: document.getElementById('reg-password').value
+            password: document.getElementById('reg-password').value,
+            subscriptionType: document.getElementById('reg-subscription').value
         };
 
         const res = await fetch(`${API_BASE}/auth/register`, {
@@ -299,5 +300,82 @@ async function handleAddVehicle(e) {
         showToast(err.message, 'error');
     } finally {
         btn.innerHTML = 'Salva';
+    }
+}
+
+// Gate API Interactions
+async function handleGateCheckIn() {
+    const plate = document.getElementById('gate-plate').value;
+    const type = document.getElementById('gate-type').value;
+    const disability = document.getElementById('gate-disability').checked;
+
+    if(!plate) {
+        showToast('Inserisci la targa', 'error');
+        return;
+    }
+
+    try {
+        const payload = {
+            licensePlate: plate,
+            vehicleType: type,
+            hasDisability: disability
+        };
+
+        const res = await fetch(`${API_BASE}/api/gate/check-in`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('Errore durante il check-in');
+        
+        const data = await res.json();
+        if(data.success) {
+            // Show alert or toast containing QR
+            alert(`Check-in riuscito! Il tuo token QR è: \n\n${data.qrCode}\n\nConservalo per il Check-Out.`);
+            showToast('Check-in completato!', 'success');
+            document.getElementById('gate-plate').value = '';
+        } else {
+            showToast(data.message, 'error');
+        }
+
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function handleGateCheckOut() {
+    const qr = document.getElementById('gate-out-qr').value;
+    const plate = document.getElementById('gate-out-plate').value;
+
+    if(!qr || !plate) {
+        showToast('Inserisci Token QR e Targa', 'error');
+        return;
+    }
+
+    try {
+        const payload = {
+            qrCode: qr,
+            licensePlate: plate
+        };
+
+        const res = await fetch(`${API_BASE}/api/gate/check-out`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        if (res.ok && data.success) {
+            alert(`Check-out riuscito!\n\nImporto da pagare: € ${data.amountDue.toFixed(2)}`);
+            showToast('Check-out completato!', 'success');
+            document.getElementById('gate-out-qr').value = '';
+            document.getElementById('gate-out-plate').value = '';
+        } else {
+            showToast(data.message || 'Errore durante il check-out', 'error');
+        }
+
+    } catch (err) {
+        showToast(err.message, 'error');
     }
 }

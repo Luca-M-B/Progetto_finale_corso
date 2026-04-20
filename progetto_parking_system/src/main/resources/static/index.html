@@ -27,6 +27,7 @@
             <div class="auth-tabs">
                 <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
                 <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Registrati</button>
+                <button id="tab-gate" class="tab-btn" onclick="switchAuthTab('gate')">Gate Access</button>
             </div>
 
             <!-- Login Form -->
@@ -52,9 +53,55 @@
                     <label for="reg-password"><i class="fa-solid fa-lock"></i> Password</label>
                     <input type="password" id="reg-password" required minlength="6" placeholder="Almeno 6 caratteri">
                 </div>
+                <div class="input-group">
+                    <label for="reg-subscription"><i class="fa-solid fa-ticket"></i> Scegli Abbonamento</label>
+                    <select id="reg-subscription" style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
+                        <option value="">Nessun Abbonamento</option>
+                        <option value="MONTHLY">Mensile</option>
+                        <option value="QUARTERLY">Trimestrale</option>
+                        <option value="YEARLY">Annuale</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn-primary btn-accent">Registrati <i
                         class="fa-solid fa-user-plus"></i></button>
             </form>
+
+            <!-- Gate Form -->
+            <div id="gate-form" class="auth-form" style="max-height: 400px; overflow-y: auto;">
+                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;">Accesso occasionale (Senza Abbonamento)</p>
+                <div id="gate-checkin-section">
+                    <div class="input-group">
+                        <label for="gate-plate"><i class="fa-solid fa-car"></i> Targa</label>
+                        <input type="text" id="gate-plate" placeholder="Es. AB123CD">
+                    </div>
+                    <div class="input-group">
+                        <label for="gate-type"><i class="fa-solid fa-truck"></i> Tipo Veicolo</label>
+                        <select id="gate-type" style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
+                            <option value="CAR">Auto</option>
+                            <option value="MOTORBIKE">Moto</option>
+                            <option value="ELECTRIC_CAR">Auto Elettrica</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex-direction:row; align-items:center;">
+                        <input type="checkbox" id="gate-disability" style="width:auto; margin-right: 10px;">
+                        <label for="gate-disability" style="margin:0;">Disabilità (104)</label>
+                    </div>
+                    <button type="button" onclick="handleGateCheckIn()" class="btn-primary" style="margin-top:1rem;">Check-In <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+                </div>
+
+                <div id="gate-checkout-section" style="margin-top:2rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
+                    <h4 style="margin-bottom: 10px; text-align: center;">Fai il Check-Out</h4>
+                    <div class="input-group">
+                        <label for="gate-out-qr"><i class="fa-solid fa-qrcode"></i> Token QR (Ricevuto al Check-in)</label>
+                        <input type="text" id="gate-out-qr" placeholder="Inserisci token">
+                    </div>
+                    <div class="input-group">
+                        <label for="gate-out-plate"><i class="fa-solid fa-car"></i> Targa Veicolo</label>
+                        <input type="text" id="gate-out-plate" placeholder="Es. AB123CD">
+                    </div>
+                    <button type="button" onclick="handleGateCheckOut()" class="btn-primary btn-accent" style="margin-top:1rem;">Check-Out <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                </div>
+            </div>
         </div>
     </div>
 

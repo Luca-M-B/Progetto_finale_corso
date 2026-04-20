@@ -23,6 +23,11 @@ public class User {
     private String role; // USER, ADMIN
     private String refreshToken;
 
+    // Subscription elements
+    private Boolean active = false;
+    private java.time.LocalDate subscriptionEndDate;
+    private String subscriptionQrCode;
+
     @OneToMany(mappedBy = "user")
     private List<Reservation> reservations;
 
