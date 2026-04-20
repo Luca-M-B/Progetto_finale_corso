@@ -19,6 +19,10 @@ public class VehicleService {
         return repository.findAll();
     }
 
+    public List<Vehicle> findAllByUserUsername(String username) {
+        return repository.findByUserUsername(username);
+    }
+
     public Optional<Vehicle> findById(Long id) {
         return repository.findById(id);
     }

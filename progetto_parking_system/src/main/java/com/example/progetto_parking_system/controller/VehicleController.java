@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.Authentication;
 import com.example.progetto_parking_system.model.Vehicle;
 import com.example.progetto_parking_system.service.VehicleService;
 
@@ -17,7 +18,10 @@ public class VehicleController {
     private VehicleService service;
 
     @GetMapping
-    public List<Vehicle> getAll() {
+    public List<Vehicle> getAll(Authentication authentication) {
+        if (authentication != null && authentication.getName() != null) {
+            return service.findAllByUserUsername(authentication.getName());
+        }
         return service.findAll();
     }
 

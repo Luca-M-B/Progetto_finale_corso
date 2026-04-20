@@ -99,8 +99,7 @@ async function handleRegister(e) {
     try {
         const payload = {
             username: document.getElementById('reg-username').value,
-            password: document.getElementById('reg-password').value,
-            ruolo: document.getElementById('reg-role').value
+            password: document.getElementById('reg-password').value
         };
 
         const res = await fetch(`${API_BASE}/auth/register`, {
