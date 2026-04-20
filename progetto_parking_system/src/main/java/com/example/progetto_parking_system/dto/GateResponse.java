@@ -10,4 +10,6 @@ public class GateResponse {
     private String message;
     private String qrCode;
     private Double amountDue;
+    private String spotCode;
+    private Long durationHours;
 }

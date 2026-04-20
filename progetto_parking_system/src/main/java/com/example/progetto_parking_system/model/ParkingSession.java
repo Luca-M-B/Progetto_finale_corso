@@ -22,6 +22,10 @@ public class ParkingSession {
     private String vehicleType; // CAR, MOTORBIKE, ELECTRIC_CAR
     private Boolean hasDisability;
     
+    @jakarta.persistence.ManyToOne
+    @jakarta.persistence.JoinColumn(name = "spot_id")
+    private Spot spot;
+
     private Double calculatedPrice;
     private Boolean isCompleted;
 }

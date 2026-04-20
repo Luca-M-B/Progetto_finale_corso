@@ -91,15 +91,24 @@
 
                 <div id="gate-checkout-section" style="margin-top:2rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
                     <h4 style="margin-bottom: 10px; text-align: center;">Fai il Check-Out</h4>
-                    <div class="input-group">
-                        <label for="gate-out-qr"><i class="fa-solid fa-qrcode"></i> Token QR (Ricevuto al Check-in)</label>
-                        <input type="text" id="gate-out-qr" placeholder="Inserisci token">
+                    
+                    <div id="scan-ticket-step">
+                        <div class="input-group">
+                            <label for="gate-out-qr"><i class="fa-solid fa-qrcode"></i> Token QR (Dal Check-in)</label>
+                            <input type="text" id="gate-out-qr" placeholder="Inserisci token">
+                        </div>
+                        <button type="button" onclick="handleTicketScan()" class="btn-primary" style="margin-top:1rem;">Invia Scansione <i class="fa-solid fa-magnifying-glass"></i></button>
                     </div>
-                    <div class="input-group">
-                        <label for="gate-out-plate"><i class="fa-solid fa-car"></i> Targa Veicolo</label>
-                        <input type="text" id="gate-out-plate" placeholder="Es. AB123CD">
+
+                    <div id="pay-ticket-step" style="display: none; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-top: 1rem; text-align: center;">
+                        <h5 style="margin-bottom: 0.5rem; color: var(--accent);">Dettagli Ticket</h5>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Posto: <span id="ticket-spot" style="font-weight: bold; color: #fff;"></span></p>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Durata: <span id="ticket-duration" style="font-weight: bold; color: #fff;"></span> h</p>
+                        <p style="font-size: 1.1rem; margin-top: 0.5rem;">Totale: <strong id="ticket-price" style="color: var(--secondary);"></strong></p>
+                        
+                        <button type="button" onclick="handlePayAndLeave()" class="btn-primary btn-accent" style="margin-top:1rem; width: 100%;">Paga e Apri Sbarra <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                        <button type="button" onclick="resetCheckOutFlow()" class="btn-primary" style="margin-top:0.5rem; width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.2);">Annulla</button>
                     </div>
-                    <button type="button" onclick="handleGateCheckOut()" class="btn-primary btn-accent" style="margin-top:1rem;">Check-Out <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
                 </div>
             </div>
         </div>

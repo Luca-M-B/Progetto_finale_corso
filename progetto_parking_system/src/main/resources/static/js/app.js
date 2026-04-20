@@ -327,16 +327,14 @@ async function handleGateCheckIn() {
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error('Errore durante il check-in');
-        
         const data = await res.json();
-        if(data.success) {
-            // Show alert or toast containing QR
-            alert(`Check-in riuscito! Il tuo token QR è: \n\n${data.qrCode}\n\nConservalo per il Check-Out.`);
+        if (data.success) {
+            let assignedMsg = data.spotCode ? `\nPosto assegnato: ${data.spotCode}\n` : '';
+            alert(`Check-in riuscito! ${assignedMsg}\nIl tuo token QR è: \n\n${data.qrCode}\n\nConservalo per il Check-Out.`);
             showToast('Check-in completato!', 'success');
             document.getElementById('gate-plate').value = '';
         } else {
-            showToast(data.message, 'error');
+            showToast(data.message || 'Errore durante il check-in', 'error');
         }
 
     } catch (err) {
@@ -344,35 +342,60 @@ async function handleGateCheckIn() {
     }
 }
 
-async function handleGateCheckOut() {
-    const qr = document.getElementById('gate-out-qr').value;
-    const plate = document.getElementById('gate-out-plate').value;
+let activeCheckoutQr = null;
 
-    if(!qr || !plate) {
-        showToast('Inserisci Token QR e Targa', 'error');
+async function handleTicketScan() {
+    const qr = document.getElementById('gate-out-qr').value;
+
+    if(!qr) {
+        showToast('Inserisci Token QR', 'error');
         return;
     }
 
     try {
-        const payload = {
-            qrCode: qr,
-            licensePlate: plate
-        };
+        const res = await fetch(`${API_BASE}/api/gate/ticket/${qr}`);
+        const data = await res.json();
+        
+        if (res.ok && data.success) {
+            activeCheckoutQr = qr;
+            document.getElementById('scan-ticket-step').style.display = 'none';
+            document.getElementById('pay-ticket-step').style.display = 'block';
+            
+            document.getElementById('ticket-spot').textContent = data.spotCode || 'N/A';
+            document.getElementById('ticket-duration').textContent = data.durationHours || 1;
+            document.getElementById('ticket-price').textContent = `€ ${data.amountDue.toFixed(2)}`;
+            showToast('Dettagli caricati', 'success');
+        } else {
+            showToast(data.message || 'Errore lettura ticket', 'error');
+        }
 
-        const res = await fetch(`${API_BASE}/api/gate/check-out`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function resetCheckOutFlow() {
+    activeCheckoutQr = null;
+    document.getElementById('gate-out-qr').value = '';
+    document.getElementById('scan-ticket-step').style.display = 'block';
+    document.getElementById('pay-ticket-step').style.display = 'none';
+}
+
+async function handlePayAndLeave() {
+    if(!activeCheckoutQr) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/gate/pay-and-leave/${activeCheckoutQr}`, {
+            method: 'POST'
         });
         
         const data = await res.json();
         if (res.ok && data.success) {
-            alert(`Check-out riuscito!\n\nImporto da pagare: € ${data.amountDue.toFixed(2)}`);
-            showToast('Check-out completato!', 'success');
-            document.getElementById('gate-out-qr').value = '';
-            document.getElementById('gate-out-plate').value = '';
+            alert(`Pagamento riuscito!\n\nImporto saldato: € ${data.amountDue.toFixed(2)}\nSbarra aperta, arrivederci!`);
+            showToast('Arrivederci!', 'success');
+            resetCheckOutFlow();
         } else {
-            showToast(data.message || 'Errore durante il check-out', 'error');
+            showToast(data.message || 'Errore durante il pagamento', 'error');
         }
 
     } catch (err) {
