@@ -45,4 +45,14 @@ public class GateController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    /**
+     * SOLO PER TEST: resetta tutti i posti a libero e chiude le sessioni aperte.
+     * Chiamare POST /api/gate/reset-test per ripulire lo stato tra un test e l'altro.
+     */
+    @PostMapping("/reset-test")
+    public ResponseEntity<java.util.Map<String, String>> resetTest() {
+        String msg = gateService.resetForTesting();
+        return ResponseEntity.ok(java.util.Map.of("message", msg));
+    }
 }

@@ -12,4 +12,5 @@ public interface SpotRepository extends JpaRepository<Spot, Long> {
     Optional<Spot> findFirstByOccupiedFalse();
     long countByOccupied(boolean occupied);
     long countByOccupiedFalse();
+    java.util.List<Spot> findAllByOccupied(boolean occupied);
 }
