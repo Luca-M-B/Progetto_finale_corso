@@ -303,102 +303,139 @@ async function handleAddVehicle(e) {
     }
 }
 
-// Gate API Interactions
+
+// ───────────── GATE: CHECK-IN ─────────────
 async function handleGateCheckIn() {
-    const plate = document.getElementById('gate-plate').value;
-    const type = document.getElementById('gate-type').value;
+    const plate = document.getElementById('gate-plate').value.trim();
+    const type  = document.getElementById('gate-type').value;
     const disability = document.getElementById('gate-disability').checked;
 
-    if(!plate) {
-        showToast('Inserisci la targa', 'error');
-        return;
-    }
+    if (!plate) { showToast('Inserisci la targa', 'error'); return; }
 
     try {
-        const payload = {
-            licensePlate: plate,
-            vehicleType: type,
-            hasDisability: disability
-        };
-
         const res = await fetch(`${API_BASE}/api/gate/check-in`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ licensePlate: plate, vehicleType: type, hasDisability: disability })
         });
-
         const data = await res.json();
+
         if (data.success) {
-            let assignedMsg = data.spotCode ? `\nPosto assegnato: ${data.spotCode}\n` : '';
-            alert(`Check-in riuscito! ${assignedMsg}\nIl tuo token QR è: \n\n${data.qrCode}\n\nConservalo per il Check-Out.`);
-            showToast('Check-in completato!', 'success');
+            showCheckInResult(data);
             document.getElementById('gate-plate').value = '';
+            document.getElementById('gate-disability').checked = false;
         } else {
             showToast(data.message || 'Errore durante il check-in', 'error');
         }
-
     } catch (err) {
         showToast(err.message, 'error');
     }
 }
 
-let activeCheckoutQr = null;
+function showCheckInResult(data) {
+    // Mostra un pannello risultato con QR e posto assegnato
+    const existing = document.getElementById('checkin-result');
+    if (existing) existing.remove();
+
+    const entryTime = data.entryTime ? new Date(data.entryTime).toLocaleTimeString('it-IT') : new Date().toLocaleTimeString('it-IT');
+    const div = document.createElement('div');
+    div.id = 'checkin-result';
+    div.style.cssText = 'background:rgba(72,219,152,0.15); border:1px solid rgba(72,219,152,0.4); border-radius:12px; padding:1.2rem; margin-top:1rem; text-align:center;';
+    div.innerHTML = `
+        <i class="fa-solid fa-circle-check" style="font-size:2rem; color:#48db98; margin-bottom:0.5rem;"></i>
+        <h4 style="color:#48db98; margin-bottom:0.8rem;">Check-in Effettuato!</h4>
+        <div style="background:rgba(0,0,0,0.3); border-radius:8px; padding:0.8rem; margin-bottom:0.8rem;">
+            <p style="margin:0.2rem 0;"><strong>Piano:</strong> ${data.floorLevel ?? 'N/A'}</p>
+            <p style="margin:0.2rem 0;"><strong>Posto:</strong> ${data.spotCode ?? 'N/A'}</p>
+            <p style="margin:0.2rem 0;"><strong>Orario ingresso:</strong> ${entryTime}</p>
+        </div>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.4rem;">Token QR per il check-out:</p>
+        <div style="background:rgba(0,0,0,0.4); border-radius:8px; padding:0.6rem; word-break:break-all; font-family:monospace; font-size:0.75rem; color:#fff; margin-bottom:0.8rem;">${data.qrCode}</div>
+        <button onclick="document.getElementById('checkin-result').remove()" style="font-size:0.8rem; background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:0.4rem 1rem; border-radius:6px; cursor:pointer;">Chiudi</button>
+    `;
+    document.getElementById('gate-checkin-section').appendChild(div);
+    showToast('Check-in completato! Posto: ' + (data.spotCode ?? 'N/A'), 'success');
+}
+
+// ───────────── GATE: CHECK-OUT ─────────────
+let activeCheckoutData = null;
 
 async function handleTicketScan() {
-    const qr = document.getElementById('gate-out-qr').value;
+    const qr    = document.getElementById('gate-out-qr').value.trim();
+    const plate = document.getElementById('gate-out-plate') 
+                  ? document.getElementById('gate-out-plate').value.trim() 
+                  : '';
 
-    if(!qr) {
-        showToast('Inserisci Token QR', 'error');
-        return;
-    }
+    if (!qr)    { showToast('Inserisci il Token QR', 'error'); return; }
+    if (!plate) { showToast('Inserisci la targa', 'error'); return; }
 
     try {
-        const res = await fetch(`${API_BASE}/api/gate/ticket/${qr}`);
+        const res = await fetch(`${API_BASE}/api/gate/check-out`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ qrCode: qr, licensePlate: plate })
+        });
         const data = await res.json();
-        
+
         if (res.ok && data.success) {
-            activeCheckoutQr = qr;
-            document.getElementById('scan-ticket-step').style.display = 'none';
-            document.getElementById('pay-ticket-step').style.display = 'block';
-            
-            document.getElementById('ticket-spot').textContent = data.spotCode || 'N/A';
-            document.getElementById('ticket-duration').textContent = data.durationHours || 1;
-            document.getElementById('ticket-price').textContent = `€ ${data.amountDue.toFixed(2)}`;
-            showToast('Dettagli caricati', 'success');
+            activeCheckoutData = data;
+            showPaymentPage(data);
         } else {
             showToast(data.message || 'Errore lettura ticket', 'error');
         }
-
     } catch (err) {
         showToast(err.message, 'error');
     }
 }
 
+function showPaymentPage(data) {
+    document.getElementById('scan-ticket-step').style.display = 'none';
+    document.getElementById('pay-ticket-step').style.display = 'block';
+
+    const fmt = (dt) => dt ? new Date(dt).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : '--';
+    const entryT = fmt(data.entryTime);
+    const exitT  = fmt(data.exitTime);
+
+    // Calcola durata
+    let durationStr = '--';
+    if (data.entryTime && data.exitTime) {
+        const diffMs = new Date(data.exitTime) - new Date(data.entryTime);
+        const mins   = Math.floor(diffMs / 60000);
+        const h      = Math.floor(mins / 60);
+        const m      = mins % 60;
+        durationStr  = h > 0 ? `${h}h ${m}min` : `${m} min`;
+    }
+
+    document.getElementById('ticket-spot').textContent     = data.spotCode ?? 'N/A';
+    document.getElementById('ticket-duration').textContent = durationStr;
+    document.getElementById('ticket-price').textContent    = data.amountDue != null
+        ? `€ ${data.amountDue.toFixed(2)}`
+        : 'N/D';
+
+    // Aggiungi dettagli orari se gli elementi esistono
+    const entryEl = document.getElementById('ticket-entry-time');
+    const exitEl  = document.getElementById('ticket-exit-time');
+    if (entryEl) entryEl.textContent = entryT;
+    if (exitEl)  exitEl.textContent  = exitT;
+}
+
 function resetCheckOutFlow() {
-    activeCheckoutQr = null;
+    activeCheckoutData = null;
     document.getElementById('gate-out-qr').value = '';
+    if (document.getElementById('gate-out-plate')) {
+        document.getElementById('gate-out-plate').value = '';
+    }
     document.getElementById('scan-ticket-step').style.display = 'block';
     document.getElementById('pay-ticket-step').style.display = 'none';
 }
 
 async function handlePayAndLeave() {
-    if(!activeCheckoutQr) return;
-
-    try {
-        const res = await fetch(`${API_BASE}/api/gate/pay-and-leave/${activeCheckoutQr}`, {
-            method: 'POST'
-        });
-        
-        const data = await res.json();
-        if (res.ok && data.success) {
-            alert(`Pagamento riuscito!\n\nImporto saldato: € ${data.amountDue.toFixed(2)}\nSbarra aperta, arrivederci!`);
-            showToast('Arrivederci!', 'success');
-            resetCheckOutFlow();
-        } else {
-            showToast(data.message || 'Errore durante il pagamento', 'error');
-        }
-
-    } catch (err) {
-        showToast(err.message, 'error');
-    }
+    // Il check-out è già avvenuto – mostriamo solo il riepilogo pagamento
+    if (!activeCheckoutData) return;
+    const amount = activeCheckoutData.amountDue ?? 0;
+    showToast(`Pagamento di €${amount.toFixed(2)} confermato. Buona giornata!`, 'success');
+    setTimeout(() => {
+        alert(`✅ Pagamento confermato!\n\nImporto: €${amount.toFixed(2)}\nSbarra aperta — Arrivederci!`);
+        resetCheckOutFlow();
+    }, 500);
 }

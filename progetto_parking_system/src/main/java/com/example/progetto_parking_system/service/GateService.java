@@ -1,6 +1,7 @@
 package com.example.progetto_parking_system.service;
 
 import com.example.progetto_parking_system.dto.GateCheckInRequest;
+import com.example.progetto_parking_system.dto.GateCheckOutRequest;
 import com.example.progetto_parking_system.dto.GateResponse;
 import com.example.progetto_parking_system.enums.SpotType;
 import com.example.progetto_parking_system.model.ParkingSession;
@@ -8,6 +9,7 @@ import com.example.progetto_parking_system.model.Spot;
 import com.example.progetto_parking_system.repository.ParkingSessionRepository;
 import com.example.progetto_parking_system.repository.SpotRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -17,6 +19,8 @@ import java.util.UUID;
 @Service
 public class GateService {
 
+    private static final double PRICE_PER_HOUR = 3.50;
+
     private final ParkingSessionRepository sessionRepository;
     private final SpotRepository spotRepository;
 
@@ -25,97 +29,117 @@ public class GateService {
         this.spotRepository = spotRepository;
     }
 
+    @Transactional
     public GateResponse handleCheckIn(GateCheckInRequest request) {
-        String vehType = request.getVehicleType() != null ? request.getVehicleType().toUpperCase() : "CAR";
-        boolean hasDisability = Boolean.TRUE.equals(request.getHasDisability());
+        String vehicleType = request.getVehicleType() != null
+                ? request.getVehicleType().toUpperCase() : "CAR";
 
-        SpotType targetType = SpotType.CAR;
-        if (hasDisability) targetType = SpotType.HANDICAPPED;
-        else if ("ELECTRIC_CAR".equals(vehType)) targetType = SpotType.ELECTRIC;
-        else if ("MOTORBIKE".equals(vehType)) targetType = SpotType.MOTORBIKE;
-
-        Spot assignedSpot = spotRepository.findFirstByTypeAndOccupiedFalse(targetType).orElse(null);
-
-        // Fallback to CAR spot if preferred type full
-        if (assignedSpot == null && targetType != SpotType.CAR) {
-            assignedSpot = spotRepository.findFirstByTypeAndOccupiedFalse(SpotType.CAR).orElse(null);
+        // Determina tipo di posto in base al veicolo
+        SpotType desiredType;
+        switch (vehicleType) {
+            case "MOTORBIKE": desiredType = SpotType.MOTORBIKE; break;
+            case "ELECTRIC":  desiredType = SpotType.ELECTRIC;  break;
+            default:          desiredType = SpotType.CAR;       break;
         }
 
-        // Auto-create a spot if none available in DB (no physical spot pre-configured)
-        if (assignedSpot == null) {
-            Spot newSpot = new Spot();
-            newSpot.setType(targetType);
-            newSpot.setCode(targetType.name() + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase());
-            newSpot.setOccupied(true);
-            assignedSpot = spotRepository.save(newSpot);
-        } else {
-            assignedSpot.setOccupied(true);
-            spotRepository.save(assignedSpot);
+        // Cerca posto libero del tipo corretto, fallback a CAR, poi qualsiasi libero
+        Optional<Spot> spotOpt = spotRepository.findFirstByTypeAndOccupiedFalse(desiredType);
+        if (spotOpt.isEmpty() && desiredType != SpotType.CAR) {
+            spotOpt = spotRepository.findFirstByTypeAndOccupiedFalse(SpotType.CAR);
         }
+        if (spotOpt.isEmpty()) {
+            spotOpt = spotRepository.findFirstByOccupiedFalse();
+        }
+
+        if (spotOpt.isEmpty()) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Nessun posto disponibile nel parcheggio");
+            return r;
+        }
+
+        Spot spot = spotOpt.get();
+        spot.setOccupied(true);
+        spotRepository.save(spot);
+
+        LocalDateTime entryTime = LocalDateTime.now();
 
         ParkingSession session = new ParkingSession();
-        session.setLicensePlate(request.getLicensePlate());
-        session.setVehicleType(vehType);
-        session.setHasDisability(hasDisability);
-        session.setEntryTime(LocalDateTime.now());
+        session.setLicensePlate(request.getLicensePlate().toUpperCase().trim());
+        session.setVehicleType(vehicleType);
+        session.setHasDisability(Boolean.TRUE.equals(request.getHasDisability()));
+        session.setEntryTime(entryTime);
         session.setIsCompleted(false);
         session.setQrCode(UUID.randomUUID().toString());
-        session.setSpot(assignedSpot);
+        session.setSpot(spot);
 
         sessionRepository.save(session);
-        return new GateResponse(true, "Check-In effettuato con successo", session.getQrCode(), null, assignedSpot.getCode(), null);
+
+        GateResponse resp = new GateResponse();
+        resp.setSuccess(true);
+        resp.setMessage("Check-in effettuato! Posto: " + spot.getCode()
+                + " - Piano " + spot.getFloor().getLevel());
+        resp.setQrCode(session.getQrCode());
+        resp.setSpotCode(spot.getCode());
+        resp.setFloorLevel(spot.getFloor().getLevel());
+        resp.setEntryTime(entryTime);
+        return resp;
     }
 
-    public GateResponse getTicketInfo(String qrCode) {
-        Optional<ParkingSession> optionalSession = sessionRepository.findByQrCodeAndIsCompletedFalse(qrCode);
+    @Transactional
+    public GateResponse handleCheckOut(GateCheckOutRequest request) {
+        Optional<ParkingSession> optionalSession =
+                sessionRepository.findByQrCodeAndIsCompletedFalse(request.getQrCode());
+
         if (optionalSession.isEmpty()) {
-            return new GateResponse(false, "QR Code non valido o sessione già terminata", null, null, null, null);
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("QR Code non valido o sessione già terminata");
+            return r;
         }
 
         ParkingSession session = optionalSession.get();
-        LocalDateTime exitTime = LocalDateTime.now();
-        
-        long hours = Duration.between(session.getEntryTime(), exitTime).toHours();
-        if (hours == 0) hours = 1; // Minimum 1 hour charge
 
-        double baseRate = 3.50; // New base rate
-        double calculatedPrice = baseRate * hours;
-
-        if (Boolean.TRUE.equals(session.getHasDisability())) {
-            calculatedPrice = 0.0;
-        } else if ("ELECTRIC_CAR".equals(session.getVehicleType())) {
-            calculatedPrice *= 0.5; // 50% discount
-        } else if ("MOTORBIKE".equals(session.getVehicleType())) {
-            calculatedPrice *= 0.7; // 30% discount
+        // Verifica targa
+        if (session.getLicensePlate() != null
+                && !session.getLicensePlate().equalsIgnoreCase(request.getLicensePlate().trim())) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Targa non corrispondente al QR Code");
+            return r;
         }
 
-        return new GateResponse(true, "Dettagli ticket caricati", qrCode, calculatedPrice, session.getSpot() != null ? session.getSpot().getCode() : null, hours);
-    }
+        LocalDateTime exitTime = LocalDateTime.now();
+        session.setExitTime(exitTime);
 
-    public GateResponse payAndLeave(String qrCode) {
-         Optional<ParkingSession> optionalSession = sessionRepository.findByQrCodeAndIsCompletedFalse(qrCode);
-         if (optionalSession.isEmpty()) {
-             return new GateResponse(false, "QR Code non valido o sessione già terminata", null, null, null, null);
-         }
- 
-         ParkingSession session = optionalSession.get();
-         
-         // We will trigger a fresh calculation for the payment
-         GateResponse ticket = getTicketInfo(qrCode);
-         
-         session.setExitTime(LocalDateTime.now());
-         session.setCalculatedPrice(ticket.getAmountDue());
-         session.setIsCompleted(true);
-         session.setLicensePlate(null); // Privacy scrub
-         
-         Spot spot = session.getSpot();
-         if (spot != null) {
-             spot.setOccupied(false);
-             spotRepository.save(spot);
-         }
-         
-         sessionRepository.save(session);
-         
-         return new GateResponse(true, "Pagamento completato, puoi uscire.", null, ticket.getAmountDue(), null, null);
+        // Calcolo costo: minimo 1 minuto, tariffazione al minuto su base €3.50/h
+        long totalMinutes = Duration.between(session.getEntryTime(), exitTime).toMinutes();
+        if (totalMinutes < 1) totalMinutes = 1;
+        double hours = totalMinutes / 60.0;
+        double calculatedPrice = Math.round(hours * PRICE_PER_HOUR * 100.0) / 100.0;
+
+        session.setCalculatedPrice(calculatedPrice);
+        session.setIsCompleted(true);
+
+        // Libera il posto
+        Spot spot = session.getSpot();
+        String spotCode = spot != null ? spot.getCode() : "N/A";
+        int floorLevel = (spot != null && spot.getFloor() != null) ? spot.getFloor().getLevel() : 0;
+        if (spot != null) {
+            spot.setOccupied(false);
+            spotRepository.save(spot);
+        }
+
+        sessionRepository.save(session);
+
+        GateResponse resp = new GateResponse();
+        resp.setSuccess(true);
+        resp.setMessage("Check-out completato. Importo da pagare: €" + String.format("%.2f", calculatedPrice));
+        resp.setAmountDue(calculatedPrice);
+        resp.setSpotCode(spotCode);
+        resp.setFloorLevel(floorLevel);
+        resp.setEntryTime(session.getEntryTime());
+        resp.setExitTime(exitTime);
+        return resp;
     }
 }

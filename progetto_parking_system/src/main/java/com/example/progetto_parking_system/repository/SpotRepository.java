@@ -9,4 +9,7 @@ import com.example.progetto_parking_system.enums.SpotType;
 
 public interface SpotRepository extends JpaRepository<Spot, Long> {
     Optional<Spot> findFirstByTypeAndOccupiedFalse(SpotType type);
+    Optional<Spot> findFirstByOccupiedFalse();
+    long countByOccupied(boolean occupied);
+    long countByOccupiedFalse();
 }
