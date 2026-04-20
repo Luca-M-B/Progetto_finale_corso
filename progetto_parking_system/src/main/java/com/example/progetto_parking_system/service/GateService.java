@@ -8,10 +8,13 @@ import com.example.progetto_parking_system.model.ParkingSession;
 import com.example.progetto_parking_system.model.Spot;
 import com.example.progetto_parking_system.repository.ParkingSessionRepository;
 import com.example.progetto_parking_system.repository.SpotRepository;
+import com.example.progetto_parking_system.model.Subscription;
+import com.example.progetto_parking_system.repository.SubscriptionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,10 +26,94 @@ public class GateService {
 
     private final ParkingSessionRepository sessionRepository;
     private final SpotRepository spotRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
-    public GateService(ParkingSessionRepository sessionRepository, SpotRepository spotRepository) {
+    public GateService(ParkingSessionRepository sessionRepository,
+                       SpotRepository spotRepository,
+                       SubscriptionRepository subscriptionRepository) {
         this.sessionRepository = sessionRepository;
         this.spotRepository = spotRepository;
+        this.subscriptionRepository = subscriptionRepository;
+    }
+
+    /**
+     * Check-in con QR abbonamento: verifica validità, assegna posto gratuitamente.
+     * La targa deve essere tra quelle associate all'abbonamento.
+     */
+    @Transactional
+    public GateResponse handleSubscriptionCheckIn(String subscriptionQr, String licensePlate) {
+        Optional<Subscription> subOpt = subscriptionRepository.findByQrCodeAndActiveTrue(subscriptionQr);
+        if (subOpt.isEmpty()) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("QR abbonamento non valido o abbonamento non attivo");
+            return r;
+        }
+
+        Subscription sub = subOpt.get();
+
+        // Controlla scadenza
+        if (LocalDate.now().isAfter(sub.getEndDate())) {
+            sub.setActive(false);
+            subscriptionRepository.save(sub);
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Abbonamento scaduto il " + sub.getEndDate());
+            return r;
+        }
+
+        // Verifica che la targa sia tra quelle dell'abbonamento (se ci sono veicoli associati)
+        String plate = licensePlate.toUpperCase().trim();
+        if (sub.getVehicles() != null && !sub.getVehicles().isEmpty()) {
+            boolean plateAllowed = sub.getVehicles().stream()
+                    .anyMatch(v -> plate.equalsIgnoreCase(v.getPlateNumber()));
+            if (!plateAllowed) {
+                GateResponse r = new GateResponse();
+                r.setSuccess(false);
+                r.setMessage("Targa " + plate + " non associata a questo abbonamento");
+                return r;
+            }
+        }
+
+        // Assegna posto
+        Optional<Spot> spotOpt = spotRepository.findFirstByTypeAndOccupiedFalse(
+                com.example.progetto_parking_system.enums.SpotType.CAR);
+        if (spotOpt.isEmpty()) {
+            spotOpt = spotRepository.findFirstByOccupiedFalse();
+        }
+        if (spotOpt.isEmpty()) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Nessun posto disponibile");
+            return r;
+        }
+
+        Spot spot = spotOpt.get();
+        spot.setOccupied(true);
+        spotRepository.save(spot);
+
+        LocalDateTime entryTime = LocalDateTime.now();
+        ParkingSession session = new ParkingSession();
+        session.setLicensePlate(plate);
+        session.setVehicleType("CAR");
+        session.setHasDisability(false);
+        session.setEntryTime(entryTime);
+        session.setIsCompleted(false);
+        session.setQrCode(UUID.randomUUID().toString()); // QR di sessione (!=QR abbonamento)
+        session.setSpot(spot);
+        session.setCalculatedPrice(0.0); // abbonato → gratis
+        sessionRepository.save(session);
+
+        GateResponse resp = new GateResponse();
+        resp.setSuccess(true);
+        resp.setMessage("✅ Abbonato — Ingresso gratuito! Posto: " + spot.getCode()
+                + " - Piano " + spot.getFloor().getLevel()
+                + " | Abbonamento valido fino al " + sub.getEndDate());
+        resp.setQrCode(session.getQrCode());
+        resp.setSpotCode(spot.getCode());
+        resp.setFloorLevel(spot.getFloor().getLevel());
+        resp.setEntryTime(entryTime);
+        return resp;
     }
 
     @Transactional

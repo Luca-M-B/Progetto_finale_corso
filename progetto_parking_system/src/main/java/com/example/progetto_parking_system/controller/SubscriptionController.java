@@ -1,52 +1,49 @@
 package com.example.progetto_parking_system.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import com.example.progetto_parking_system.model.Subscription;
+import com.example.progetto_parking_system.dto.SubscriptionPurchaseRequest;
+import com.example.progetto_parking_system.dto.SubscriptionResponse;
 import com.example.progetto_parking_system.service.SubscriptionService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/subscriptions")
+@RequiredArgsConstructor
 public class SubscriptionController {
 
-    @Autowired
-    private SubscriptionService service;
+    private final SubscriptionService subscriptionService;
 
-    @GetMapping
-    public List<Subscription> getAll() {
-        return service.findAll();
+    /** Acquisto nuovo abbonamento (utente autenticato) */
+    @PostMapping("/purchase")
+    public ResponseEntity<SubscriptionResponse> purchase(
+            Authentication auth,
+            @RequestBody SubscriptionPurchaseRequest request) {
+        SubscriptionResponse resp = subscriptionService.purchase(auth.getName(), request);
+        return ResponseEntity.ok(resp);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Subscription> getById(@PathVariable Long id) {
-        return service.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    /** I miei abbonamenti */
+    @GetMapping("/my")
+    public ResponseEntity<List<SubscriptionResponse>> mySubscriptions(Authentication auth) {
+        return ResponseEntity.ok(subscriptionService.getMySubscriptions(auth.getName()));
     }
 
-    @PostMapping
-    public Subscription create(@RequestBody Subscription entity) {
-        return service.save(entity);
+    /** Verifica QR code abbonamento (usato dal gate — endpoint pubblico) */
+    @GetMapping("/verify/{qrCode}")
+    public ResponseEntity<SubscriptionResponse> verifyQr(@PathVariable String qrCode) {
+        SubscriptionResponse resp = subscriptionService.verifyQrCode(qrCode);
+        return ResponseEntity.ok(resp);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Subscription> update(@PathVariable Long id, @RequestBody Subscription entity) {
-        return service.findById(id)
-                .map(existingEntity -> {
-                    entity.setId(id);
-                    return ResponseEntity.ok(service.save(entity));
-                })
-                .orElse(ResponseEntity.notFound().build());
-    }
-
+    /** Cancella abbonamento per id (admin) */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (service.findById(id).isPresent()) {
-            service.deleteById(id);
+        if (subscriptionService.findById(id).isPresent()) {
+            subscriptionService.deleteById(id);
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();

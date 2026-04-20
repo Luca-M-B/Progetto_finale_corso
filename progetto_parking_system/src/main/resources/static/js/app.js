@@ -140,7 +140,11 @@ function loadSection(section) {
     if (btn) btn.classList.add('active');
 
     const pageTitle = document.getElementById('page-title');
-    document.getElementById('vehicles-section').classList.add('hidden');
+    // Nascondi tutte le sezioni content
+    ['vehicles-section', 'subscriptions-section'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
 
     switch (section) {
         case 'dashboard':
@@ -154,7 +158,12 @@ function loadSection(section) {
             document.getElementById('vehicles-section').classList.remove('hidden');
             fetchVehicles();
             break;
-        // add logic for parkings/reservations here
+        case 'subscriptions':
+            pageTitle.textContent = 'I Miei Abbonamenti';
+            document.querySelector('.dashboard-stats').classList.add('hidden');
+            document.getElementById('subscriptions-section').classList.remove('hidden');
+            fetchSubscriptions();
+            break;
         default:
             pageTitle.textContent = section.charAt(0).toUpperCase() + section.slice(1);
             document.querySelector('.dashboard-stats').classList.add('hidden');

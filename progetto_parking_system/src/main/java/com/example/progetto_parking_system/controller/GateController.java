@@ -32,6 +32,24 @@ public class GateController {
     }
 
     /**
+     * Check-in con QR abbonamento (ingresso gratuito per abbonati).
+     * Richiede subscriptionQr e licensePlate nel body.
+     */
+    @PostMapping("/sub-check-in")
+    public ResponseEntity<GateResponse> subCheckIn(@RequestBody java.util.Map<String, String> body) {
+        String qr    = body.get("subscriptionQr");
+        String plate = body.get("licensePlate");
+        if (qr == null || plate == null) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Parametri mancanti: subscriptionQr e licensePlate obbligatori");
+            return ResponseEntity.badRequest().body(r);
+        }
+        GateResponse response = gateService.handleSubscriptionCheckIn(qr, plate);
+        return response.isSuccess() ? ResponseEntity.ok(response) : ResponseEntity.badRequest().body(response);
+    }
+
+    /**
      * Check-out: inserisce targa e QR code.
      * Se validi, segna l'orario di uscita, calcola il costo (€3.50/h),
      * libera il posto e restituisce il riepilogo per il pagamento.
