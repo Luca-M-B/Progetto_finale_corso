@@ -180,9 +180,17 @@ public class GateService {
             case "ELECTRIC":
                 desiredType = SpotType.ELECTRIC;
                 break;
+            case "HANDICAPPED":
+                desiredType = SpotType.HANDICAPPED;
+                break;
             default:
                 desiredType = SpotType.CAR;
                 break;
+        }
+
+        // Override se disabilità presente
+        if (Boolean.TRUE.equals(request.getHasDisability())) {
+            desiredType = SpotType.HANDICAPPED;
         }
 
         // Cerca posto libero del tipo corretto, fallback a CAR, poi qualsiasi libero
