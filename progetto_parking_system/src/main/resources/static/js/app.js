@@ -602,6 +602,15 @@ function openSubDetailModal(sub) {
 
     document.getElementById('sub-qr-display').textContent = sub.qrCode || 'QR non disponibile';
 
+    // Mostra immagine QR abbonamento (valida finché l'abbonamento è attivo)
+    const qrImgEl = document.getElementById('sub-qr-image');
+    if (qrImgEl && sub.qrCode) {
+        qrImgEl.src = `${API_BASE}/api/subscriptions/qr/${sub.qrCode}`;
+        qrImgEl.style.display = 'block';
+    } else if (qrImgEl) {
+        qrImgEl.style.display = 'none';
+    }
+
     const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
     document.getElementById('sub-validity').textContent =
         `Valido: ${fmtDate(sub.startDate)} → ${fmtDate(sub.endDate)}`;
@@ -901,7 +910,12 @@ function showCheckInResult(data) {
             <p style="margin:0.2rem 0;"><strong>Posto:</strong> ${data.spotCode ?? 'N/A'}</p>
             <p style="margin:0.2rem 0;"><strong>Orario ingresso:</strong> ${entryTime}</p>
         </div>
-        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.4rem;">Token QR per il check-out:</p>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.4rem;">QR Code per il check-out (valido fino all'uscita):</p>
+        <img src="${API_BASE}/api/gate/qr/${data.qrCode}"
+             alt="QR Code check-in"
+             style="width:180px;height:180px;border-radius:8px;margin:0.5rem auto;display:block;background:#fff;padding:6px;"
+             onerror="this.style.display='none'">
+        <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.3rem;">Token testuale (alternativo):</p>
         <div style="background:rgba(0,0,0,0.4);border-radius:8px;padding:0.6rem;word-break:break-all;font-family:monospace;font-size:0.75rem;color:#fff;margin-bottom:0.8rem;">
             ${data.qrCode}
         </div>

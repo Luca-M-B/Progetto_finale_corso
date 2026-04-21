@@ -4,6 +4,8 @@ import com.example.progetto_parking_system.dto.GateCheckInRequest;
 import com.example.progetto_parking_system.dto.GateCheckOutRequest;
 import com.example.progetto_parking_system.dto.GateResponse;
 import com.example.progetto_parking_system.service.GateService;
+import com.example.progetto_parking_system.service.QrCodeService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +14,11 @@ import org.springframework.web.bind.annotation.*;
 public class GateController {
 
     private final GateService gateService;
+    private final QrCodeService qrCodeService;
 
-    public GateController(GateService gateService) {
+    public GateController(GateService gateService, QrCodeService qrCodeService) {
         this.gateService = gateService;
+        this.qrCodeService = qrCodeService;
     }
 
     /**
@@ -62,6 +66,24 @@ public class GateController {
         } else {
             return ResponseEntity.badRequest().body(response);
         }
+    }
+
+    /**
+     * Restituisce l'immagine PNG del QR code di una sessione di check-in attiva.
+     * Il QR è valido finché la sessione non è completata (check-out non eseguito).
+     * Ritorna 404 se la sessione è già chiusa o il token non esiste.
+     *
+     * @param token il qrCode della ParkingSession
+     */
+    @GetMapping(value = "/qr/{token}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getCheckInQrImage(@PathVariable String token) {
+        if (!gateService.isCheckInQrActive(token)) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] png = qrCodeService.generateQrPng(token);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(png);
     }
 
     /**

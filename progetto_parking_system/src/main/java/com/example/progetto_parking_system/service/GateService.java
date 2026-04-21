@@ -287,4 +287,15 @@ public class GateService {
         return "Reset completato: " + openSessions.size() + " sessioni chiuse, "
                 + occupiedSpots.size() + " posti liberati.";
     }
+
+    /**
+     * Verifica se un token di check-in è ancora attivo (sessione non completata).
+     * Usato dal GateController per decidere se generare il QR code di sessione.
+     *
+     * @param token il qrCode della ParkingSession
+     * @return true se la sessione esiste ed è ancora aperta (non completata)
+     */
+    public boolean isCheckInQrActive(String token) {
+        return sessionRepository.findByQrCodeAndIsCompletedFalse(token).isPresent();
+    }
 }

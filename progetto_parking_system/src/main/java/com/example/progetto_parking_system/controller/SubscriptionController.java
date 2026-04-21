@@ -2,8 +2,10 @@ package com.example.progetto_parking_system.controller;
 
 import com.example.progetto_parking_system.dto.SubscriptionPurchaseRequest;
 import com.example.progetto_parking_system.dto.SubscriptionResponse;
+import com.example.progetto_parking_system.service.QrCodeService;
 import com.example.progetto_parking_system.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,7 @@ import java.util.List;
 public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
+    private final QrCodeService qrCodeService;
 
     /** Acquisto nuovo abbonamento (utente autenticato) */
     @PostMapping
@@ -37,6 +40,24 @@ public class SubscriptionController {
     public ResponseEntity<SubscriptionResponse> verifyQr(@PathVariable String qrCode) {
         SubscriptionResponse resp = subscriptionService.verifyQrCode(qrCode);
         return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * Restituisce l'immagine PNG del QR code di un abbonamento attivo.
+     * Il QR è valido finché l'abbonamento non scade.
+     * Ritorna 404 se l'abbonamento è scaduto, non attivo o il codice non esiste.
+     *
+     * @param qrCode il QR code dell'abbonamento
+     */
+    @GetMapping(value = "/qr/{qrCode}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getSubscriptionQrImage(@PathVariable String qrCode) {
+        if (!subscriptionService.isSubscriptionQrActive(qrCode)) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] png = qrCodeService.generateQrPng(qrCode);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(png);
     }
 
     /** Cancella abbonamento per id (admin) */

@@ -25,7 +25,8 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/auth/**",
-                                         "/api/gate/**", "/api/subscriptions/verify/**").permitAll()
+                                         "/api/gate/**", "/api/subscriptions/verify/**",
+                                         "/api/subscriptions/qr/**").permitAll()
                         .anyRequest().authenticated());
 
         return http.build();

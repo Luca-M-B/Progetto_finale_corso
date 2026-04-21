@@ -166,4 +166,17 @@ public class SubscriptionService {
     // metodi base usati da altri controller
     public Optional<Subscription> findById(Long id) { return subscriptionRepository.findById(id); }
     public void deleteById(Long id) { subscriptionRepository.deleteById(id); }
+
+    /**
+     * Verifica se il QR di un abbonamento è ancora valido (attivo e non scaduto).
+     * Usato dal SubscriptionController per decidere se generare l'immagine QR.
+     *
+     * @param qrCode il QR code dell'abbonamento
+     * @return true se l'abbonamento è attivo e non scaduto
+     */
+    public boolean isSubscriptionQrActive(String qrCode) {
+        return subscriptionRepository.findByQrCodeAndActiveTrue(qrCode)
+                .map(sub -> !LocalDate.now().isAfter(sub.getEndDate()))
+                .orElse(false);
+    }
 }
