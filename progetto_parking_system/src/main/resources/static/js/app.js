@@ -2,8 +2,9 @@ const API_BASE = 'http://localhost:8080';
 
 // App State
 let appState = {
-    token: localStorage.getItem('token') || null,
+    isLoggedIn: localStorage.getItem('isLoggedIn') === 'true',
     username: localStorage.getItem('username') || null,
+    hasActiveSubscription: false,
     currentView: 'auth'
 };
 
@@ -32,7 +33,7 @@ function setupEventListeners() {
 
 // Authentication Logic
 function checkAuthState() {
-    if (appState.token) {
+    if (appState.isLoggedIn) {
         showView('dashboard');
         document.getElementById('display-username').textContent = appState.username || 'Utente';
         loadSection('dashboard');
@@ -67,17 +68,21 @@ async function handleLogin(e) {
         const res = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(payload)
         });
 
         if (!res.ok) throw new Error('Credenziali non valide');
         const data = await res.json();
 
-        appState.token = data.token;
-        appState.username = payload.username;
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('username', payload.username);
+        appState.isLoggedIn = true;
+        appState.username = data.username;
+        appState.hasActiveSubscription = !!data.hasActiveSubscription;
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('username', data.username);
 
+        document.getElementById('display-username').textContent = data.username;
+        applySubscriptionUI();
         showToast('Login effettuato con successo!', 'success');
         checkAuthState();
     } catch (err) {
@@ -102,6 +107,7 @@ async function handleRegister(e) {
         const res = await fetch(`${API_BASE}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(payload)
         });
 
@@ -120,9 +126,10 @@ async function handleRegister(e) {
 }
 
 function logout() {
-    appState.token = null;
+    appState.isLoggedIn = false;
     appState.username = null;
-    localStorage.removeItem('token');
+    appState.hasActiveSubscription = false;
+    localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('username');
     checkAuthState();
 }
@@ -136,8 +143,17 @@ function loadSection(section) {
     const pageTitle = document.getElementById('page-title');
     const statsEl = document.querySelector('.dashboard-stats');
 
+    // Access Control: Abbonamento obbligatorio per certe sezioni
+    const restricted = ['vehicles', 'parkings', 'reservations'];
+    if (restricted.includes(section) && !appState.hasActiveSubscription) {
+        showToast('Accesso negato. Rinnova l\'abbonamento per accedere a questa sezione.', 'error');
+        // Se l'utente prova ad andare in una sezione bloccata, lo mandiamo forzatamente su abbonamenti
+        loadSection('subscriptions');
+        return;
+    }
+
     // Nascondi tutte le sezioni
-    ['vehicles-section', 'subscriptions-section', 'reservations-section'].forEach(id => {
+    ['vehicles-section', 'subscriptions-section', 'reservations-section', 'parkings-section'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -234,19 +250,22 @@ function fetchData() {
 
 // ─── API Helper ──────────────────────────────────────────────────────────────
 async function fetchWithAuth(url, options = {}) {
-    if (!appState.token) { logout(); throw new Error('Non autenticato'); }
-
+    // Ora usiamo fetch senza token Bearer, tutto è open (permitAll sul backend)
     const headers = {
-        'Authorization': `Bearer ${appState.token}`,
         'Content-Type': 'application/json',
         ...options.headers
     };
 
-    const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
+    const response = await fetch(`${API_BASE}${url}`, { 
+        ...options, 
+        headers,
+        credentials: 'include'
+    });
 
+    // Se il server restituisce 401/403, andiamo comunque al login view
     if (response.status === 401 || response.status === 403) {
         logout();
-        throw new Error('Sessione scaduta o accesso negato');
+        throw new Error('Accesso negato');
     }
 
     return response;
@@ -412,14 +431,23 @@ async function fetchSubscriptions() {
         const typeLabel = { MONTHLY: 'Mensile', QUARTERLY: 'Trimestrale', YEARLY: 'Annuale' };
         const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
 
+        // Aggiorna lo stato globale in base agli abbonamenti ricevuti
+        appState.hasActiveSubscription = subs.some(s => s.active !== false && new Date(s.endDate) > new Date());
+        applySubscriptionUI();
+
         grid.innerHTML = subs.map(s => {
             const isActive = s.active !== false && new Date(s.endDate) > new Date();
             const badge = isActive
                 ? `<span style="background:rgba(72,219,152,0.2);color:#48db98;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">ATTIVO</span>`
                 : `<span style="background:rgba(255,99,132,0.2);color:#ff6384;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">SCADUTO</span>`;
 
+            const endDate = new Date(s.endDate);
+            const today = new Date();
+            const diffTime = endDate - today;
+            const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
             return `
-                <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;">
+                <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;position:relative;overflow:hidden;">
                     <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
                         <div class="stat-icon purple" style="width:40px;height:40px;font-size:1.2rem;">
                             <i class="fa-solid fa-id-card"></i>
@@ -427,22 +455,31 @@ async function fetchSubscriptions() {
                         ${badge}
                     </div>
                     <h3 style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">
-                        ${typeLabel[s.subscriptionType] || s.subscriptionType || 'Abbonamento'}
+                        ${typeLabel[s.type] || s.type || 'Abbonamento'}
                     </h3>
-                    <p style="font-size:0.82rem;color:var(--text-muted);">
-                        <i class="fa-regular fa-calendar"></i>
-                        ${fmtDate(s.startDate)} → ${fmtDate(s.endDate)}
-                    </p>
-                    ${s.vehicles && s.vehicles.length ? `
-                        <p style="font-size:0.8rem;color:#63b3ed;">
-                            <i class="fa-solid fa-car"></i>
-                            ${s.vehicles.map(v => v.targa || v).join(', ')}
+                    <div style="width:100%;background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:5px 0;">
+                        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
+                            <i class="fa-regular fa-calendar"></i> Scadenza: <strong>${fmtDate(s.endDate)}</strong>
+                        </p>
+                        <p style="font-size:0.9rem;color:${isActive ? '#48db98' : '#ff6384'};font-weight:600;">
+                            <i class="fa-solid fa-hourglass-half"></i> ${isActive ? `${daysRemaining} giorni rimanenti` : 'Abbonamento scaduto'}
+                        </p>
+                    </div>
+                    ${s.vehiclePlates && s.vehiclePlates.length ? `
+                        <p style="font-size:0.8rem;color:#63b3ed;margin-top:5px;">
+                            <i class="fa-solid fa-car"></i> Veicoli: ${s.vehiclePlates.join(', ')}
                         </p>` : ''}
-                    ${s.qrCode ? `
-                        <button class="btn-primary" style="width:100%;margin-top:0.5rem;font-size:0.85rem;background:rgba(99,179,237,0.15);"
-                            onclick='openSubDetailModal(${JSON.stringify(s)})'>
-                            <i class="fa-solid fa-qrcode"></i> Mostra QR
-                        </button>` : ''}
+                    <div style="display:flex;gap:8px;width:100%;margin-top:0.8rem;">
+                        ${s.qrCode ? `
+                            <button class="btn-primary" style="flex:1;font-size:0.85rem;background:rgba(99,179,237,0.15);"
+                                onclick='openSubDetailModal(${JSON.stringify(s)})'>
+                                <i class="fa-solid fa-qrcode"></i> Mostra QR
+                            </button>` : ''}
+                        <button class="btn-primary btn-accent" style="flex:1;font-size:0.85rem;"
+                            onclick='openSubscriptionModal()'>
+                            <i class="fa-solid fa-rotate"></i> Rinnova
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -453,11 +490,18 @@ async function fetchSubscriptions() {
 
 // ─── Modal Acquisto Abbonamento ───────────────────────────────────────────────
 async function openSubscriptionModal() {
+    console.log("Opening subscription modal...");
     const modal = document.getElementById('subscription-modal');
+    if (!modal) {
+        console.error("Modal 'subscription-modal' not found!");
+        return;
+    }
     modal.style.display = 'flex';
 
     const listEl = document.getElementById('sub-vehicles-list');
-    listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Caricamento veicoli...</p>';
+    if (listEl) {
+        listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Caricamento veicoli...</p>';
+    }
 
     try {
         const res = await fetchWithAuth('/api/vehicles');
@@ -496,7 +540,7 @@ async function handlePurchaseSubscription(e) {
             .map(cb => parseInt(cb.value));
 
         const payload = {
-            subscriptionType: subType,
+            type: subType,
             vehicleIds: selectedVehicles
         };
 
@@ -910,6 +954,22 @@ function resetCheckOutFlow() {
     if (plateEl) plateEl.value = '';
     document.getElementById('scan-ticket-step').style.display = 'block';
     document.getElementById('pay-ticket-step').style.display = 'none';
+}
+
+function applySubscriptionUI() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        const onClick = item.getAttribute('onclick');
+        if (onClick && (onClick.includes('vehicles') || onClick.includes('parkings') || onClick.includes('reservations'))) {
+            if (!appState.hasActiveSubscription) {
+                item.style.opacity = '0.5';
+                item.title = 'Richiede abbonamento attivo';
+            } else {
+                item.style.opacity = '1';
+                item.title = '';
+            }
+        }
+    });
 }
 
 async function handlePayAndLeave() {

@@ -56,6 +56,22 @@ public class SubscriptionService {
         }
 
         LocalDate start = LocalDate.now();
+        
+        // Cerca se esiste già un abbonamento attivo per estenderlo
+        List<Subscription> activeSubs = subscriptionRepository.findByUserUsernameAndActiveTrue(username);
+        if (!activeSubs.isEmpty()) {
+            // Se ne ha più di uno (raro ma possibile), prendiamo quello che scade più tardi
+            LocalDate furthestEnd = activeSubs.stream()
+                .map(Subscription::getEndDate)
+                .max(LocalDate::compareTo)
+                .orElse(start);
+            
+            // Se l'abbonamento attivo scade nel futuro, partiamo da lì
+            if (furthestEnd.isAfter(start)) {
+                start = furthestEnd;
+            }
+        }
+
         LocalDate end;
         double price;
         switch (type) {

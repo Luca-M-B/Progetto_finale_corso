@@ -18,7 +18,7 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
 
     /** Acquisto nuovo abbonamento (utente autenticato) */
-    @PostMapping("/purchase")
+    @PostMapping
     public ResponseEntity<SubscriptionResponse> purchase(
             Authentication auth,
             @RequestBody SubscriptionPurchaseRequest request) {
@@ -27,7 +27,7 @@ public class SubscriptionController {
     }
 
     /** I miei abbonamenti */
-    @GetMapping("/my")
+    @GetMapping
     public ResponseEntity<List<SubscriptionResponse>> mySubscriptions(Authentication auth) {
         return ResponseEntity.ok(subscriptionService.getMySubscriptions(auth.getName()));
     }

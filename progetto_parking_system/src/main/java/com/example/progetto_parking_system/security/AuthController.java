@@ -2,6 +2,7 @@ package com.example.progetto_parking_system.security;
 
 import java.util.Map;
 import java.util.UUID;
+import java.time.LocalDate;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,10 +14,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import com.example.progetto_parking_system.model.User;
 import com.example.progetto_parking_system.repository.UserRepository;
 import com.example.progetto_parking_system.service.CustomUserDetailsService;
+import com.example.progetto_parking_system.service.SubscriptionService;
+import com.example.progetto_parking_system.dto.SubscriptionPurchaseRequest;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,54 +36,45 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class AuthController {
 
     private final AuthenticationManager authManager;
-    private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SubscriptionService subscriptionService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request, HttpServletRequest servletRequest) {
 
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-        UserDetails user = userDetailsService.loadUserByUsername(request.getUsername());
-        String accessToken = jwtService.generateToken(user);
-        String refreshToken = UUID.randomUUID().toString();
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        HttpSession session = servletRequest.getSession(true);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, SecurityContextHolder.getContext());
 
-        User u = userRepository.findByUsername(user.getUsername()).get();
-        u.setRefreshToken(refreshToken);
-        userRepository.save(u);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+        
+        boolean hasActive = subscriptionService.getMySubscriptions(userDetails.getUsername()).stream()
+                .anyMatch(s -> Boolean.TRUE.equals(s.getActive()));
 
-        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken));
+        // Non usiamo più JWT, restituiamo solo successo, username e stato abbonamento
+        return ResponseEntity.ok(Map.of(
+            "message", "Login effettuato",
+            "username", userDetails.getUsername(),
+            "hasActiveSubscription", hasActive
+        ));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
-
-        User u = userRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException("Refresh token non valido"));
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(u.getUsername());
-        String newToken = jwtService.generateToken(userDetails);
-
-        return ResponseEntity.ok(new AuthResponse(newToken, refreshToken));
+    public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
+        return ResponseEntity.status(HttpStatus.GONE).body("JWT disabilitato. Refresh non necessario.");
     }
 
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
-
-        userRepository.findByRefreshToken(refreshToken)
-                .ifPresent(u -> {
-                    u.setRefreshToken(null);
-                    userRepository.save(u);
-                });
-
         return ResponseEntity.ok("Logout effettuato.");
     }
 
+    @Transactional
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
 
@@ -89,28 +88,14 @@ public class AuthController {
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
         newUser.setRole("USER");
 
-        if (request.getSubscriptionType() != null && !request.getSubscriptionType().isEmpty()) {
-            newUser.setActive(true);
-            newUser.setSubscriptionQrCode(UUID.randomUUID().toString());
-            
-            java.time.LocalDate now = java.time.LocalDate.now();
-            switch (request.getSubscriptionType().toUpperCase()) {
-                case "MONTHLY":
-                    newUser.setSubscriptionEndDate(now.plusMonths(1));
-                    break;
-                case "QUARTERLY":
-                    newUser.setSubscriptionEndDate(now.plusMonths(3));
-                    break;
-                case "YEARLY":
-                    newUser.setSubscriptionEndDate(now.plusYears(1));
-                    break;
-                default:
-                    newUser.setSubscriptionEndDate(now.plusMonths(1));
-                    break;
-            }
-        }
-
         userRepository.save(newUser);
+
+        if (request.getSubscriptionType() != null && !request.getSubscriptionType().isEmpty()) {
+            SubscriptionPurchaseRequest subRequest = new SubscriptionPurchaseRequest();
+            subRequest.setType(request.getSubscriptionType());
+            // Il purchase assegnerà automaticamente QR code, date e stato attivo
+            subscriptionService.purchase(newUser.getUsername(), subRequest);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("Registrazione completata con successo");
