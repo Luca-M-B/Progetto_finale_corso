@@ -2,9 +2,14 @@ const API_BASE = 'http://localhost:8080';
 
 // App State
 let appState = {
+<<<<<<< HEAD
     isLoggedIn: localStorage.getItem('isLoggedIn') === 'true',
     username: localStorage.getItem('username') || null,
     hasActiveSubscription: false,
+=======
+    username: localStorage.getItem('username') || null,
+    role: localStorage.getItem('role') || null,
+>>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
     currentView: 'auth'
 };
 
@@ -33,7 +38,11 @@ function setupEventListeners() {
 
 // Authentication Logic
 function checkAuthState() {
+<<<<<<< HEAD
     if (appState.isLoggedIn) {
+=======
+    if (appState.username) {
+>>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
         showView('dashboard');
         document.getElementById('display-username').textContent = appState.username || 'Utente';
         loadSection('dashboard');
@@ -75,11 +84,18 @@ async function handleLogin(e) {
         if (!res.ok) throw new Error('Credenziali non valide');
         const data = await res.json();
 
+<<<<<<< HEAD
         appState.isLoggedIn = true;
         appState.username = data.username;
         appState.hasActiveSubscription = !!data.hasActiveSubscription;
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('username', data.username);
+=======
+        appState.username = data.username;
+        appState.role = data.role;
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('role', data.role || '');
+>>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
 
         document.getElementById('display-username').textContent = data.username;
         applySubscriptionUI();
@@ -125,12 +141,26 @@ async function handleRegister(e) {
     }
 }
 
+<<<<<<< HEAD
 function logout() {
     appState.isLoggedIn = false;
     appState.username = null;
     appState.hasActiveSubscription = false;
     localStorage.removeItem('isLoggedIn');
+=======
+async function logout() {
+    try {
+        await fetch(`${API_BASE}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (_) { /* ignora errori di rete */ }
+
+    appState.username = null;
+    appState.role = null;
+>>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
     localStorage.removeItem('username');
+    localStorage.removeItem('role');
     checkAuthState();
 }
 
@@ -250,22 +280,43 @@ function fetchData() {
 
 // ─── API Helper ──────────────────────────────────────────────────────────────
 async function fetchWithAuth(url, options = {}) {
+<<<<<<< HEAD
     // Ora usiamo fetch senza token Bearer, tutto è open (permitAll sul backend)
+=======
+    if (!appState.username) { logout(); throw new Error('Non autenticato'); }
+
+>>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers
     };
 
+<<<<<<< HEAD
     const response = await fetch(`${API_BASE}${url}`, { 
         ...options, 
         headers,
         credentials: 'include'
+=======
+    const response = await fetch(`${API_BASE}${url}`, {
+        ...options,
+        headers,
+        credentials: 'include'   // invia automaticamente il cookie di sessione
+>>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
     });
 
     // Se il server restituisce 401/403, andiamo comunque al login view
     if (response.status === 401 || response.status === 403) {
+<<<<<<< HEAD
         logout();
         throw new Error('Accesso negato');
+=======
+        appState.username = null;
+        appState.role = null;
+        localStorage.removeItem('username');
+        localStorage.removeItem('role');
+        showView('auth');
+        throw new Error('Sessione scaduta o accesso negato');
+>>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
     }
 
     return response;
@@ -922,9 +973,9 @@ function showPaymentPage(data) {
     document.getElementById('scan-ticket-step').style.display = 'none';
     document.getElementById('pay-ticket-step').style.display = 'block';
 
-    const fmt = dt => dt
-        ? new Date(dt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-        : '--';
+    const fmt = dt =>
+        dt ? new Date(dt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+           : '--';
 
     let durationStr = '--';
     if (data.entryTime && data.exitTime) {

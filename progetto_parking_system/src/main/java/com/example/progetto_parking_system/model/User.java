@@ -21,7 +21,6 @@ public class User {
     private String username;
     private String password;
     private String role; // USER, ADMIN
-    private String refreshToken;
 
     // Subscription elements
     private Boolean active = false;
@@ -30,5 +29,4 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<Reservation> reservations;
-
 }

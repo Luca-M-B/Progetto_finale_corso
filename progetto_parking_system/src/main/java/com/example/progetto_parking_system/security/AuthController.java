@@ -1,6 +1,5 @@
 package com.example.progetto_parking_system.security;
 
-import java.util.Map;
 import java.util.UUID;
 import java.time.LocalDate;
 
@@ -9,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +25,8 @@ import com.example.progetto_parking_system.service.CustomUserDetailsService;
 import com.example.progetto_parking_system.service.SubscriptionService;
 import com.example.progetto_parking_system.dto.SubscriptionPurchaseRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,32 +37,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class AuthController {
 
     private final AuthenticationManager authManager;
-    private final CustomUserDetailsService userDetailsService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SubscriptionService subscriptionService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request, HttpServletRequest servletRequest) {
+    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest) {
 
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(auth);
+
         HttpSession session = servletRequest.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, SecurityContextHolder.getContext());
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                SecurityContextHolder.getContext());
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
-        
+
         boolean hasActive = subscriptionService.getMySubscriptions(userDetails.getUsername()).stream()
                 .anyMatch(s -> Boolean.TRUE.equals(s.getActive()));
 
         // Non usiamo più JWT, restituiamo solo successo, username e stato abbonamento
         return ResponseEntity.ok(Map.of(
-            "message", "Login effettuato",
-            "username", userDetails.getUsername(),
-            "hasActiveSubscription", hasActive
-        ));
+                "message", "Login effettuato",
+                "username", userDetails.getUsername(),
+                "hasActiveSubscription", hasActive));
     }
 
     @PostMapping("/refresh")
@@ -71,6 +72,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestBody Map<String, String> request) {
+
         return ResponseEntity.ok("Logout effettuato.");
     }
 
