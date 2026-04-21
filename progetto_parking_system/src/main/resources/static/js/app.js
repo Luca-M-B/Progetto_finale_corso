@@ -2,8 +2,8 @@ const API_BASE = 'http://localhost:8080';
 
 // App State
 let appState = {
-    token: localStorage.getItem('token') || null,
     username: localStorage.getItem('username') || null,
+    role: localStorage.getItem('role') || null,
     currentView: 'auth'
 };
 
@@ -32,7 +32,7 @@ function setupEventListeners() {
 
 // Authentication Logic
 function checkAuthState() {
-    if (appState.token) {
+    if (appState.username) {
         showView('dashboard');
         document.getElementById('display-username').textContent = appState.username || 'Utente';
         loadSection('dashboard');
@@ -67,16 +67,17 @@ async function handleLogin(e) {
         const res = await fetch(`${API_BASE}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(payload)
         });
 
         if (!res.ok) throw new Error('Credenziali non valide');
         const data = await res.json();
 
-        appState.token = data.token;
-        appState.username = payload.username;
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('username', payload.username);
+        appState.username = data.username;
+        appState.role = data.role;
+        localStorage.setItem('username', data.username);
+        localStorage.setItem('role', data.role || '');
 
         showToast('Login effettuato con successo!', 'success');
         checkAuthState();
@@ -102,6 +103,7 @@ async function handleRegister(e) {
         const res = await fetch(`${API_BASE}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(payload)
         });
 
@@ -119,11 +121,18 @@ async function handleRegister(e) {
     }
 }
 
-function logout() {
-    appState.token = null;
+async function logout() {
+    try {
+        await fetch(`${API_BASE}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (_) { /* ignora errori di rete */ }
+
     appState.username = null;
-    localStorage.removeItem('token');
+    appState.role = null;
     localStorage.removeItem('username');
+    localStorage.removeItem('role');
     checkAuthState();
 }
 
@@ -234,18 +243,25 @@ function fetchData() {
 
 // ─── API Helper ──────────────────────────────────────────────────────────────
 async function fetchWithAuth(url, options = {}) {
-    if (!appState.token) { logout(); throw new Error('Non autenticato'); }
+    if (!appState.username) { logout(); throw new Error('Non autenticato'); }
 
     const headers = {
-        'Authorization': `Bearer ${appState.token}`,
         'Content-Type': 'application/json',
         ...options.headers
     };
 
-    const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
+    const response = await fetch(`${API_BASE}${url}`, {
+        ...options,
+        headers,
+        credentials: 'include'   // invia automaticamente il cookie di sessione
+    });
 
     if (response.status === 401 || response.status === 403) {
-        logout();
+        appState.username = null;
+        appState.role = null;
+        localStorage.removeItem('username');
+        localStorage.removeItem('role');
+        showView('auth');
         throw new Error('Sessione scaduta o accesso negato');
     }
 
@@ -878,9 +894,9 @@ function showPaymentPage(data) {
     document.getElementById('scan-ticket-step').style.display = 'none';
     document.getElementById('pay-ticket-step').style.display = 'block';
 
-    const fmt = dt => dt
-        ? new Date(dt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-        : '--';
+    const fmt = dt =>
+        dt ? new Date(dt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+           : '--';
 
     let durationStr = '--';
     if (data.entryTime && data.exitTime) {

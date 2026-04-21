@@ -1,6 +1,5 @@
 package com.example.progetto_parking_system.security;
 
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -8,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,8 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.progetto_parking_system.model.User;
 import com.example.progetto_parking_system.repository.UserRepository;
-import com.example.progetto_parking_system.service.CustomUserDetailsService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,51 +28,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class AuthController {
 
     private final AuthenticationManager authManager;
-    private final JwtService jwtService;
-    private final CustomUserDetailsService userDetailsService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest) {
 
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-        UserDetails user = userDetailsService.loadUserByUsername(request.getUsername());
-        String accessToken = jwtService.generateToken(user);
-        String refreshToken = UUID.randomUUID().toString();
+        SecurityContextHolder.getContext().setAuthentication(auth);
 
-        User u = userRepository.findByUsername(user.getUsername()).get();
-        u.setRefreshToken(refreshToken);
-        userRepository.save(u);
+        // Crea la sessione HTTP e vi salva il contesto di sicurezza
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
-        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken));
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
-
-        User u = userRepository.findByRefreshToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException("Refresh token non valido"));
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(u.getUsername());
-        String newToken = jwtService.generateToken(userDetails);
-
-        return ResponseEntity.ok(new AuthResponse(newToken, refreshToken));
+        User u = userRepository.findByUsername(request.getUsername()).get();
+        return ResponseEntity.ok(new AuthResponse(u.getUsername(), u.getRole()));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestBody Map<String, String> request) {
-        String refreshToken = request.get("refreshToken");
-
-        userRepository.findByRefreshToken(refreshToken)
-                .ifPresent(u -> {
-                    u.setRefreshToken(null);
-                    userRepository.save(u);
-                });
-
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
         return ResponseEntity.ok("Logout effettuato.");
     }
 
@@ -92,7 +73,7 @@ public class AuthController {
         if (request.getSubscriptionType() != null && !request.getSubscriptionType().isEmpty()) {
             newUser.setActive(true);
             newUser.setSubscriptionQrCode(UUID.randomUUID().toString());
-            
+
             java.time.LocalDate now = java.time.LocalDate.now();
             switch (request.getSubscriptionType().toUpperCase()) {
                 case "MONTHLY":

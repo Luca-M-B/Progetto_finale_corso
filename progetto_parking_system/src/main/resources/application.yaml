@@ -12,8 +12,5 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-jwt:
-  secret: mysupersecretkey1234567890abcdef
-  expiration: 86400000
 server:
   port: 8080

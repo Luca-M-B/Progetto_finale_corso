@@ -55,8 +55,8 @@
                 </div>
                 <div class="input-group">
                     <label for="reg-subscription"><i class="fa-solid fa-ticket"></i> Scegli Abbonamento</label>
-                    <select id="reg-subscription" style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
-                        <option value="">Nessun Abbonamento</option>
+                    <select id="reg-subscription"
+                        style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
                         <option value="MONTHLY">Mensile</option>
                         <option value="QUARTERLY">Trimestrale</option>
                         <option value="YEARLY">Annuale</option>
@@ -68,7 +68,8 @@
 
             <!-- Gate Form -->
             <div id="gate-form" class="auth-form" style="max-height: 400px; overflow-y: auto;">
-                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;">Accesso occasionale (Senza Abbonamento)</p>
+                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;">Accesso
+                    occasionale (Senza Abbonamento)</p>
                 <div id="gate-checkin-section">
                     <div class="input-group">
                         <label for="gate-plate"><i class="fa-solid fa-car"></i> Targa</label>
@@ -76,7 +77,8 @@
                     </div>
                     <div class="input-group">
                         <label for="gate-type"><i class="fa-solid fa-truck"></i> Tipo Veicolo</label>
-                        <select id="gate-type" style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
+                        <select id="gate-type"
+                            style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
                             <option value="CAR">Auto</option>
                             <option value="MOTORBIKE">Moto</option>
                             <option value="ELECTRIC_CAR">Auto Elettrica</option>
@@ -86,10 +88,12 @@
                         <input type="checkbox" id="gate-disability" style="width:auto; margin-right: 10px;">
                         <label for="gate-disability" style="margin:0;">Disabilità (104)</label>
                     </div>
-                    <button type="button" onclick="handleGateCheckIn()" class="btn-primary" style="margin-top:1rem;">Check-In <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
+                    <button type="button" onclick="handleGateCheckIn()" class="btn-primary"
+                        style="margin-top:1rem;">Check-In <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
                 </div>
 
-                <div id="gate-checkout-section" style="margin-top:2rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
+                <div id="gate-checkout-section"
+                    style="margin-top:2rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
                     <h4 style="margin-bottom: 10px; text-align: center;">Fai il Check-Out</h4>
 
                     <div id="scan-ticket-step">
@@ -101,19 +105,30 @@
                             <label for="gate-out-qr"><i class="fa-solid fa-qrcode"></i> Token QR (Dal Check-in)</label>
                             <input type="text" id="gate-out-qr" placeholder="Inserisci token">
                         </div>
-                        <button type="button" onclick="handleTicketScan()" class="btn-primary" style="margin-top:1rem;">Verifica ed Esci <i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                        <button type="button" onclick="handleTicketScan()" class="btn-primary"
+                            style="margin-top:1rem;">Verifica ed Esci <i
+                                class="fa-solid fa-arrow-right-from-bracket"></i></button>
                     </div>
 
-                    <div id="pay-ticket-step" style="display: none; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-top: 1rem; text-align: center;">
+                    <div id="pay-ticket-step"
+                        style="display: none; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-top: 1rem; text-align: center;">
                         <h5 style="margin-bottom: 0.5rem; color: var(--accent);">Riepilogo Pagamento</h5>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Posto: <span id="ticket-spot" style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Ingresso: <span id="ticket-entry-time" style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Uscita: <span id="ticket-exit-time" style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Durata: <span id="ticket-duration" style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 1.2rem; margin-top: 0.8rem;">Totale: <strong id="ticket-price" style="color: var(--secondary);"></strong></p>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Posto: <span id="ticket-spot"
+                                style="font-weight: bold; color: #fff;"></span></p>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Ingresso: <span id="ticket-entry-time"
+                                style="font-weight: bold; color: #fff;"></span></p>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Uscita: <span id="ticket-exit-time"
+                                style="font-weight: bold; color: #fff;"></span></p>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Durata: <span id="ticket-duration"
+                                style="font-weight: bold; color: #fff;"></span></p>
+                        <p style="font-size: 1.2rem; margin-top: 0.8rem;">Totale: <strong id="ticket-price"
+                                style="color: var(--secondary);"></strong></p>
 
-                        <button type="button" onclick="handlePayAndLeave()" class="btn-primary btn-accent" style="margin-top:1rem; width: 100%;">Conferma Pagamento <i class="fa-solid fa-credit-card"></i></button>
-                        <button type="button" onclick="resetCheckOutFlow()" class="btn-primary" style="margin-top:0.5rem; width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.2);">Annulla</button>
+                        <button type="button" onclick="handlePayAndLeave()" class="btn-primary btn-accent"
+                            style="margin-top:1rem; width: 100%;">Conferma Pagamento <i
+                                class="fa-solid fa-credit-card"></i></button>
+                        <button type="button" onclick="resetCheckOutFlow()" class="btn-primary"
+                            style="margin-top:0.5rem; width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.2);">Annulla</button>
                     </div>
                 </div>
             </div>
@@ -195,7 +210,8 @@
                 <div class="data-section mt-4 hidden" id="subscriptions-section">
                     <div class="section-header">
                         <h3><i class="fa-solid fa-id-card" style="margin-right:6px;"></i>I Miei Abbonamenti</h3>
-                        <button class="btn-primary btn-sm" onclick="openSubscriptionModal()"><i class="fa-solid fa-plus"></i> Acquista</button>
+                        <button class="btn-primary btn-sm" onclick="openSubscriptionModal()"><i
+                                class="fa-solid fa-plus"></i> Acquista</button>
                     </div>
                     <div class="grid-container" id="subscriptions-grid"></div>
                 </div>
@@ -233,7 +249,8 @@
     </div>
 
     <!-- Modal Acquisto Abbonamento -->
-    <div id="subscription-modal" style="display:none; position:fixed; z-index:9100; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
+    <div id="subscription-modal"
+        style="display:none; position:fixed; z-index:9100; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center;">
         <div class="glass-panel auth-box" style="margin:auto; max-height:90vh; overflow-y:auto; width:420px;">
             <div class="auth-header">
                 <i class="fa-solid fa-id-card logo-icon"></i>
@@ -242,7 +259,8 @@
             <form id="subscription-form" class="auth-form active">
                 <div class="input-group">
                     <label><i class="fa-solid fa-calendar"></i> Tipo Abbonamento</label>
-                    <select id="sub-type" style="width:100%;padding:0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:#fff;font-family:'Inter',sans-serif;">
+                    <select id="sub-type"
+                        style="width:100%;padding:0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:#fff;font-family:'Inter',sans-serif;">
                         <option value="MONTHLY">Mensile — €49,90</option>
                         <option value="QUARTERLY">Trimestrale — €129,90</option>
                         <option value="YEARLY">Annuale — €449,90</option>
@@ -251,15 +269,19 @@
 
                 <div class="input-group">
                     <label><i class="fa-solid fa-car"></i> Veicoli da associare</label>
-                    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem;">Seleziona i veicoli coperti dall'abbonamento</p>
-                    <div id="sub-vehicles-list" style="display:flex;flex-direction:column;gap:0.5rem;max-height:200px;overflow-y:auto;">
+                    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem;">Seleziona i veicoli
+                        coperti dall'abbonamento</p>
+                    <div id="sub-vehicles-list"
+                        style="display:flex;flex-direction:column;gap:0.5rem;max-height:200px;overflow-y:auto;">
                         <p style="color:var(--text-muted);font-size:0.85rem;">Caricamento veicoli...</p>
                     </div>
                 </div>
 
-                <div style="background:rgba(99,179,237,0.1);border:1px solid rgba(99,179,237,0.3);border-radius:8px;padding:0.8rem;margin-bottom:1rem;">
+                <div
+                    style="background:rgba(99,179,237,0.1);border:1px solid rgba(99,179,237,0.3);border-radius:8px;padding:0.8rem;margin-bottom:1rem;">
                     <p style="font-size:0.82rem;color:#63b3ed;margin:0;"><i class="fa-solid fa-circle-info"></i>
-                    L'abbonamento genera un QR code valido per tutto il periodo. Puoi usarlo per entrare senza pagare ogni volta.</p>
+                        L'abbonamento genera un QR code valido per tutto il periodo. Puoi usarlo per entrare senza
+                        pagare ogni volta.</p>
                 </div>
 
                 <div style="display:flex;gap:10px;">
@@ -273,13 +295,16 @@
     </div>
 
     <!-- Modal dettaglio abbonamento (QR) -->
-    <div id="sub-detail-modal" style="display:none; position:fixed; z-index:9200; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+    <div id="sub-detail-modal"
+        style="display:none; position:fixed; z-index:9200; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
         <div class="glass-panel auth-box" style="margin:auto; max-width:400px; text-align:center;">
             <div class="auth-header">
                 <i class="fa-solid fa-qrcode logo-icon"></i>
                 <h2>Il Tuo QR Abbonamento</h2>
             </div>
-            <div id="sub-qr-display" style="background:rgba(0,0,0,0.4);border-radius:12px;padding:1rem;margin-bottom:1rem;word-break:break-all;font-family:monospace;font-size:0.75rem;color:#fff;letter-spacing:0.05em;"></div>
+            <div id="sub-qr-display"
+                style="background:rgba(0,0,0,0.4);border-radius:12px;padding:1rem;margin-bottom:1rem;word-break:break-all;font-family:monospace;font-size:0.75rem;color:#fff;letter-spacing:0.05em;">
+            </div>
             <p id="sub-validity" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;"></p>
             <p id="sub-vehicles-display" style="font-size:0.82rem;color:#63b3ed;margin-bottom:1rem;"></p>
             <button onclick="closeSubDetailModal()" class="btn-primary" style="width:100%;">Chiudi</button>
