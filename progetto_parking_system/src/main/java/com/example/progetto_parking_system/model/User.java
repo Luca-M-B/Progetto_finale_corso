@@ -1,12 +1,9 @@
 package com.example.progetto_parking_system.model;
 
-import java.util.List;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -26,7 +23,4 @@ public class User {
     private Boolean active = false;
     private java.time.LocalDate subscriptionEndDate;
     private String subscriptionQrCode;
-
-    @OneToMany(mappedBy = "user")
-    private List<Reservation> reservations;
 }

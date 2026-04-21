@@ -105,7 +105,8 @@ async function handleRegister(e) {
         const payload = {
             username: document.getElementById('reg-username').value,
             password: document.getElementById('reg-password').value,
-            subscriptionType: document.getElementById('reg-subscription').value
+            subscriptionType: document.getElementById('reg-subscription').value,
+            vehicleType: document.getElementById('reg-vehicle-type').value
         };
 
         const res = await fetch(`${API_BASE}/auth/register`, {
@@ -488,6 +489,12 @@ async function fetchSubscriptions() {
                         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
                             <i class="fa-regular fa-calendar"></i> Scadenza: <strong>${fmtDate(s.endDate)}</strong>
                         </p>
+                        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
+                            <i class="fa-solid fa-car-side"></i> Veicolo: <strong>${s.vehicleType || 'N/A'}</strong>
+                        </p>
+                        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
+                            <i class="fa-solid fa-map-pin"></i> Posto: <strong style="color:#63b3ed;">${s.spotCode || 'Assegnazione...'}</strong>
+                        </p>
                         <p style="font-size:0.9rem;color:${isActive ? '#48db98' : '#ff6384'};font-weight:600;">
                             <i class="fa-solid fa-hourglass-half"></i> ${isActive ? `${daysRemaining} giorni rimanenti` : 'Abbonamento scaduto'}
                         </p>
@@ -563,12 +570,12 @@ async function handlePurchaseSubscription(e) {
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Acquisto in corso...';
 
     try {
-        const subType = document.getElementById('sub-type').value;
         const selectedVehicles = [...document.querySelectorAll('input[name="sub-vehicle"]:checked')]
             .map(cb => parseInt(cb.value));
 
         const payload = {
-            type: subType,
+            type: document.getElementById('sub-type').value,
+            vehicleType: document.getElementById('sub-vehicle-type').value,
             vehicleIds: selectedVehicles
         };
 
@@ -626,202 +633,6 @@ function openSubDetailModal(sub) {
 
 function closeSubDetailModal() {
     document.getElementById('sub-detail-modal').style.display = 'none';
-}
-
-// ─── Prenotazioni ─────────────────────────────────────────────────────────────
-async function fetchReservations() {
-    const grid = document.getElementById('reservations-grid');
-    if (!grid) return;
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
-
-    try {
-        const res = await fetchWithAuth('/api/reservations');
-        if (!res.ok) throw new Error('Errore nel caricamento prenotazioni');
-        const reservations = await res.json();
-
-        if (!reservations.length) {
-            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessuna prenotazione. Creane una nuova.</div>';
-            return;
-        }
-
-        const fmtDt = d => d ? new Date(d).toLocaleString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'N/A';
-        const statusMap = {
-            ACTIVE: { label: 'ATTIVA', color: '#48db98', bg: 'rgba(72,219,152,0.2)' },
-            PENDING: { label: 'IN ATTESA', color: '#f6d365', bg: 'rgba(246,211,101,0.2)' },
-            COMPLETED: { label: 'COMPLETATA', color: '#63b3ed', bg: 'rgba(99,179,237,0.2)' },
-            CANCELLED: { label: 'ANNULLATA', color: '#ff6384', bg: 'rgba(255,99,132,0.2)' }
-        };
-
-        grid.innerHTML = reservations.map(r => {
-            const st = statusMap[r.status] || { label: r.status || 'N/A', color: '#fff', bg: 'rgba(255,255,255,0.1)' };
-            const canCancel = r.status === 'ACTIVE' || r.status === 'PENDING';
-            return `
-                <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;">
-                    <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-                        <div class="stat-icon" style="width:40px;height:40px;font-size:1.2rem;background:rgba(99,179,237,0.15);">
-                            <i class="fa-solid fa-calendar-check"></i>
-                        </div>
-                        <span style="background:${st.bg};color:${st.color};padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">
-                            ${st.label}
-                        </span>
-                    </div>
-                    <h3 style="color:#fff;font-size:1rem;margin-top:0.5rem;">
-                        Posto: ${r.spotCode || r.parkingSpot?.code || 'N/A'}
-                    </h3>
-                    <p style="font-size:0.82rem;color:var(--text-muted);">
-                        <i class="fa-regular fa-clock"></i> ${fmtDt(r.startTime)} → ${fmtDt(r.endTime)}
-                    </p>
-                    ${r.vehicle ? `
-                        <p style="font-size:0.8rem;color:#63b3ed;">
-                            <i class="fa-solid fa-car"></i> ${r.vehicle.targa || r.vehicle}
-                        </p>` : ''}
-                    ${r.totalCost != null ? `
-                        <p style="font-size:0.9rem;color:var(--secondary);font-weight:600;">
-                            € ${r.totalCost.toFixed(2)}
-                        </p>` : ''}
-                    ${canCancel ? `
-                        <button class="btn-primary" style="width:100%;margin-top:0.5rem;font-size:0.85rem;background:var(--danger);"
-                            onclick="cancelReservation(${r.id})">
-                            <i class="fa-solid fa-xmark"></i> Annulla
-                        </button>` : ''}
-                </div>
-            `;
-        }).join('');
-    } catch (err) {
-        grid.innerHTML = `<div style="grid-column:1/-1;color:var(--danger);">${err.message}</div>`;
-    }
-}
-
-async function cancelReservation(id) {
-    if (!confirm('Vuoi annullare questa prenotazione?')) return;
-    try {
-        const res = await fetchWithAuth(`/api/reservations/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Errore durante annullamento');
-        showToast('Prenotazione annullata', 'success');
-        fetchReservations();
-    } catch (err) {
-        showToast(err.message, 'error');
-    }
-}
-
-// ─── Modal Nuova Prenotazione ─────────────────────────────────────────────────
-function ensureReservationModal() {
-    if (document.getElementById('reservation-modal')) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'reservation-modal';
-    modal.style.cssText = 'display:none;position:fixed;z-index:9300;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;';
-    modal.innerHTML = `
-        <div class="glass-panel auth-box" style="margin:auto;max-height:90vh;overflow-y:auto;width:420px;">
-            <div class="auth-header">
-                <i class="fa-solid fa-calendar-plus logo-icon"></i>
-                <h2>Nuova Prenotazione</h2>
-            </div>
-            <form id="reservation-form" class="auth-form active">
-                <div class="input-group">
-                    <label><i class="fa-solid fa-car"></i> Veicolo</label>
-                    <select id="res-vehicle" style="width:100%;padding:0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:#fff;font-family:'Inter',sans-serif;">
-                        <option value="">Caricamento...</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label><i class="fa-regular fa-clock"></i> Data/Ora Inizio</label>
-                    <input type="datetime-local" id="res-start" style="width:100%;padding:0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:#fff;font-family:'Inter',sans-serif;" required>
-                </div>
-                <div class="input-group">
-                    <label><i class="fa-regular fa-clock"></i> Data/Ora Fine</label>
-                    <input type="datetime-local" id="res-end" style="width:100%;padding:0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:#fff;font-family:'Inter',sans-serif;" required>
-                </div>
-                <div style="display:flex;gap:10px;">
-                    <button type="button" class="btn-danger-outline" onclick="closeReservationModal()">Annulla</button>
-                    <button type="submit" class="btn-primary btn-accent" style="flex:1;">
-                        Prenota <i class="fa-solid fa-calendar-check"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
-    `;
-    document.body.appendChild(modal);
-
-    document.getElementById('reservation-form').addEventListener('submit', handleCreateReservation);
-}
-
-async function openReservationModal() {
-    ensureReservationModal();
-    const modal = document.getElementById('reservation-modal');
-    modal.style.display = 'flex';
-
-    // Precompila data minima = adesso
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const isoNow = now.toISOString().slice(0, 16);
-    document.getElementById('res-start').min = isoNow;
-    document.getElementById('res-end').min = isoNow;
-
-    // Carica veicoli
-    const sel = document.getElementById('res-vehicle');
-    sel.innerHTML = '<option value="">Caricamento...</option>';
-    try {
-        const res = await fetchWithAuth('/api/vehicles');
-        const vehicles = await res.json();
-        if (!vehicles.length) {
-            sel.innerHTML = '<option value="">Nessun veicolo disponibile</option>';
-        } else {
-            sel.innerHTML = vehicles.map(v =>
-                `<option value="${v.id}">${v.targa} — ${v.modello}</option>`
-            ).join('');
-        }
-    } catch {
-        sel.innerHTML = '<option value="">Errore caricamento</option>';
-    }
-}
-
-function closeReservationModal() {
-    const modal = document.getElementById('reservation-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.getElementById('reservation-form').reset();
-    }
-}
-
-async function handleCreateReservation(e) {
-    e.preventDefault();
-    const btn = e.target.querySelector('button[type="submit"]');
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Prenotazione...';
-
-    try {
-        const vehicleId = document.getElementById('res-vehicle').value;
-        const startTime = document.getElementById('res-start').value;
-        const endTime = document.getElementById('res-end').value;
-
-        if (!vehicleId) throw new Error('Seleziona un veicolo');
-        if (!startTime || !endTime) throw new Error('Inserisci data/ora di inizio e fine');
-        if (new Date(endTime) <= new Date(startTime)) throw new Error('La fine deve essere dopo l\'inizio');
-
-        const payload = {
-            vehicleId: parseInt(vehicleId),
-            startTime: new Date(startTime).toISOString(),
-            endTime: new Date(endTime).toISOString()
-        };
-
-        const res = await fetchWithAuth('/api/reservations', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(errText || 'Errore durante la prenotazione');
-        }
-
-        showToast('Prenotazione creata con successo!', 'success');
-        closeReservationModal();
-        fetchReservations();
-    } catch (err) {
-        showToast(err.message, 'error');
-    } finally {
-        btn.innerHTML = 'Prenota <i class="fa-solid fa-calendar-check"></i>';
-    }
 }
 
 // ─── Parcheggi ───────────────────────────────────────────────────────────────

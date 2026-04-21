@@ -94,7 +94,8 @@ public class AuthController {
         if (request.getSubscriptionType() != null && !request.getSubscriptionType().isEmpty()) {
             SubscriptionPurchaseRequest subRequest = new SubscriptionPurchaseRequest();
             subRequest.setType(request.getSubscriptionType());
-            // Il purchase assegnerà automaticamente QR code, date e stato attivo
+            subRequest.setVehicleType(request.getVehicleType()); // Passa il tipo veicolo scelto
+            // Il purchase assegnerà automaticamente QR code, date, stato attivo e POSTO RISERVATO
             subscriptionService.purchase(newUser.getUsername(), subRequest);
         }
 

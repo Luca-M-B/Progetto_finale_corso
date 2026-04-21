@@ -21,6 +21,13 @@ public class Subscription {
     @Enumerated(EnumType.STRING)
     private SubscriptionType type; // MONTHLY, QUARTERLY, YEARLY
 
+    @Enumerated(EnumType.STRING)
+    private com.example.progetto_parking_system.enums.SpotType vehicleType; // CAR, MOTORBIKE, ELECTRIC, HANDICAPPED
+
+    @OneToOne
+    @JoinColumn(name = "spot_id")
+    private Spot assignedSpot;
+
     private LocalDate startDate;
     private LocalDate endDate;
 

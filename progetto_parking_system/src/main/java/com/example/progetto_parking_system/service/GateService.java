@@ -29,8 +29,8 @@ public class GateService {
     private final SubscriptionRepository subscriptionRepository;
 
     public GateService(ParkingSessionRepository sessionRepository,
-                       SpotRepository spotRepository,
-                       SubscriptionRepository subscriptionRepository) {
+            SpotRepository spotRepository,
+            SubscriptionRepository subscriptionRepository) {
         this.sessionRepository = sessionRepository;
         this.spotRepository = spotRepository;
         this.subscriptionRepository = subscriptionRepository;
@@ -62,7 +62,8 @@ public class GateService {
             return r;
         }
 
-        // Verifica che la targa sia tra quelle dell'abbonamento (se ci sono veicoli associati)
+        // Verifica che la targa sia tra quelle dell'abbonamento (se ci sono veicoli
+        // associati)
         String plate = licensePlate.toUpperCase().trim();
         if (sub.getVehicles() != null && !sub.getVehicles().isEmpty()) {
             boolean plateAllowed = sub.getVehicles().stream()
@@ -75,28 +76,39 @@ public class GateService {
             }
         }
 
-        // Assegna posto
-        Optional<Spot> spotOpt = spotRepository.findFirstByTypeAndOccupiedFalse(
-                com.example.progetto_parking_system.enums.SpotType.CAR);
-        if (spotOpt.isEmpty()) {
-            spotOpt = spotRepository.findFirstByOccupiedFalse();
+        // Usa il posto già assegnato all'abbonamento
+        Spot spot = sub.getAssignedSpot();
+        if (spot != null) {
+            // Assicuriamoci che risulti occupato nel DB (es. dopo un reset-test o se liberato per errore)
+            if (!spot.isOccupied()) {
+                spot.setOccupied(true);
+                spotRepository.save(spot);
+            }
+        } else {
+             // Fallback se per qualche motivo non ha un posto assegnato
+             Optional<Spot> spotOpt = spotRepository.findFirstByTypeAndOccupiedFalse(
+                     sub.getVehicleType() != null ? sub.getVehicleType() : SpotType.CAR);
+             if (spotOpt.isEmpty()) spotOpt = spotRepository.findFirstByOccupiedFalse();
+             
+             if (spotOpt.isEmpty()) {
+                 GateResponse r = new GateResponse();
+                 r.setSuccess(false);
+                 r.setMessage("Nessun posto disponibile");
+                 return r;
+             }
+             spot = spotOpt.get();
+             spot.setOccupied(true);
+             spotRepository.save(spot);
+             
+             sub.setAssignedSpot(spot);
+             subscriptionRepository.save(sub);
         }
-        if (spotOpt.isEmpty()) {
-            GateResponse r = new GateResponse();
-            r.setSuccess(false);
-            r.setMessage("Nessun posto disponibile");
-            return r;
-        }
-
-        Spot spot = spotOpt.get();
-        spot.setOccupied(true);
-        spotRepository.save(spot);
 
         LocalDateTime entryTime = LocalDateTime.now();
         ParkingSession session = new ParkingSession();
         session.setLicensePlate(plate);
-        session.setVehicleType("CAR");
-        session.setHasDisability(false);
+        session.setVehicleType(sub.getVehicleType() != null ? sub.getVehicleType().name() : "CAR");
+        session.setHasDisability(sub.getVehicleType() == SpotType.HANDICAPPED);
         session.setEntryTime(entryTime);
         session.setIsCompleted(false);
         session.setQrCode(UUID.randomUUID().toString()); // QR di sessione (!=QR abbonamento)
@@ -106,7 +118,7 @@ public class GateService {
 
         GateResponse resp = new GateResponse();
         resp.setSuccess(true);
-        resp.setMessage("✅ Abbonato — Ingresso gratuito! Posto: " + spot.getCode()
+        resp.setMessage("✅ Abbonato — Ingresso gratuito! Posto RISERVATO: " + spot.getCode()
                 + " - Piano " + spot.getFloor().getLevel()
                 + " | Abbonamento valido fino al " + sub.getEndDate());
         resp.setQrCode(session.getQrCode());
@@ -119,14 +131,21 @@ public class GateService {
     @Transactional
     public GateResponse handleCheckIn(GateCheckInRequest request) {
         String vehicleType = request.getVehicleType() != null
-                ? request.getVehicleType().toUpperCase() : "CAR";
+                ? request.getVehicleType().toUpperCase()
+                : "CAR";
 
         // Determina tipo di posto in base al veicolo
         SpotType desiredType;
         switch (vehicleType) {
-            case "MOTORBIKE": desiredType = SpotType.MOTORBIKE; break;
-            case "ELECTRIC":  desiredType = SpotType.ELECTRIC;  break;
-            default:          desiredType = SpotType.CAR;       break;
+            case "MOTORBIKE":
+                desiredType = SpotType.MOTORBIKE;
+                break;
+            case "ELECTRIC":
+                desiredType = SpotType.ELECTRIC;
+                break;
+            default:
+                desiredType = SpotType.CAR;
+                break;
         }
 
         // Cerca posto libero del tipo corretto, fallback a CAR, poi qualsiasi libero
@@ -175,8 +194,8 @@ public class GateService {
 
     @Transactional
     public GateResponse handleCheckOut(GateCheckOutRequest request) {
-        Optional<ParkingSession> optionalSession =
-                sessionRepository.findByQrCodeAndIsCompletedFalse(request.getQrCode());
+        Optional<ParkingSession> optionalSession = sessionRepository
+                .findByQrCodeAndIsCompletedFalse(request.getQrCode());
 
         if (optionalSession.isEmpty()) {
             GateResponse r = new GateResponse();
@@ -201,20 +220,28 @@ public class GateService {
 
         // Calcolo costo: minimo 1 minuto, tariffazione al minuto su base €3.50/h
         long totalMinutes = Duration.between(session.getEntryTime(), exitTime).toMinutes();
-        if (totalMinutes < 1) totalMinutes = 1;
+        if (totalMinutes < 1)
+            totalMinutes = 1;
         double hours = totalMinutes / 60.0;
         double basePrice = hours * PRICE_PER_HOUR;
 
-        // Sconti MOLTIPLICATIVI (a cascata): ogni sconto si applica sul prezzo già scontato,
-        // NON si sommano le percentuali. Esempio: disabile con elettrico → base × 0.80 × 0.50
+        // Sconti MOLTIPLICATIVI (a cascata): ogni sconto si applica sul prezzo già
+        // scontato,
+        // NON si sommano le percentuali. Esempio: disabile con elettrico → base × 0.80
+        // × 0.50
         double priceMultiplier = 1.0;
 
         // Sconto per tipo veicolo
         String vType = session.getVehicleType() != null ? session.getVehicleType().toUpperCase() : "CAR";
         switch (vType) {
-            case "ELECTRIC":   priceMultiplier *= 0.80; break; // -20%
-            case "MOTORBIKE":  priceMultiplier *= 0.70; break; // -30%
-            default:           break;                          // nessuno sconto
+            case "ELECTRIC":
+                priceMultiplier *= 0.80;
+                break; // -20%
+            case "MOTORBIKE":
+                priceMultiplier *= 0.70;
+                break; // -30%
+            default:
+                break; // nessuno sconto
         }
 
         // Sconto disabilità applicato SUL prezzo già scontato dal tipo veicolo
@@ -227,13 +254,17 @@ public class GateService {
         session.setCalculatedPrice(calculatedPrice);
         session.setIsCompleted(true);
 
-        // Libera il posto
+        // Libera il posto SOLO SE non è assegnato a un abbonamento attivo
         Spot spot = session.getSpot();
         String spotCode = spot != null ? spot.getCode() : "N/A";
         int floorLevel = (spot != null && spot.getFloor() != null) ? spot.getFloor().getLevel() : 0;
+        
         if (spot != null) {
-            spot.setOccupied(false);
-            spotRepository.save(spot);
+            boolean isAssignedToActiveSub = subscriptionRepository.existsByAssignedSpotAndActiveTrue(spot);
+            if (!isAssignedToActiveSub) {
+                spot.setOccupied(false);
+                spotRepository.save(spot);
+            }
         }
 
         sessionRepository.save(session);
@@ -241,8 +272,10 @@ public class GateService {
         // Costruisci descrizione sconto per il messaggio
         StringBuilder discountInfo = new StringBuilder();
         if (!vType.equals("CAR")) {
-            if (vType.equals("ELECTRIC"))  discountInfo.append(" [-20% elettrico]");
-            if (vType.equals("MOTORBIKE")) discountInfo.append(" [-30% moto]");
+            if (vType.equals("ELECTRIC"))
+                discountInfo.append(" [-20% elettrico]");
+            if (vType.equals("MOTORBIKE"))
+                discountInfo.append(" [-30% moto]");
         }
         if (Boolean.TRUE.equals(session.getHasDisability())) {
             discountInfo.append(" [-50% disabilità]");
@@ -261,14 +294,16 @@ public class GateService {
     }
 
     /**
-     * SOLO PER TEST: libera tutti i posti occupati e chiude tutte le sessioni aperte.
-     * Non calcola prezzi — serve solo a resettare lo stato del parcheggio tra un test e l'altro.
+     * SOLO PER TEST: libera tutti i posti occupati e chiude tutte le sessioni
+     * aperte.
+     * Non calcola prezzi — serve solo a resettare lo stato del parcheggio tra un
+     * test e l'altro.
      */
     @Transactional
     public String resetForTesting() {
         // 1. Chiudi tutte le sessioni ancora aperte
-        java.util.List<com.example.progetto_parking_system.model.ParkingSession> openSessions =
-                sessionRepository.findAllByIsCompletedFalse();
+        java.util.List<com.example.progetto_parking_system.model.ParkingSession> openSessions = sessionRepository
+                .findAllByIsCompletedFalse();
         for (com.example.progetto_parking_system.model.ParkingSession s : openSessions) {
             s.setIsCompleted(true);
             s.setExitTime(java.time.LocalDateTime.now());
@@ -276,11 +311,14 @@ public class GateService {
         }
         sessionRepository.saveAll(openSessions);
 
-        // 2. Libera tutti i posti occupati
-        java.util.List<com.example.progetto_parking_system.model.Spot> occupiedSpots =
-                spotRepository.findAllByOccupied(true);
+        // 2. Libera tutti i posti occupati (tranne quelli assegnati ad abbonamenti attivi)
+        java.util.List<com.example.progetto_parking_system.model.Spot> occupiedSpots = spotRepository
+                .findAllByOccupied(true);
         for (com.example.progetto_parking_system.model.Spot sp : occupiedSpots) {
-            sp.setOccupied(false);
+            boolean isReserved = subscriptionRepository.existsByAssignedSpotAndActiveTrue(sp);
+            if (!isReserved) {
+                sp.setOccupied(false);
+            }
         }
         spotRepository.saveAll(occupiedSpots);
 

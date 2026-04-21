@@ -9,7 +9,7 @@ public class ProgettoParkingSystemApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(ProgettoParkingSystemApplication.class, args);
 
-		System.out.println("\n\n\n\t\t------ PROGRAMMA RUNNATO 6------\n\n\n");
+		System.out.println("\n\n\n\t\t------ PROGRAMMA RUNNATO 7 ------\n\n\n");
 	}
 
 }

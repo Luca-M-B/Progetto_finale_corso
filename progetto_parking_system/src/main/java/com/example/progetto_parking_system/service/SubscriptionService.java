@@ -2,10 +2,13 @@ package com.example.progetto_parking_system.service;
 
 import com.example.progetto_parking_system.dto.SubscriptionPurchaseRequest;
 import com.example.progetto_parking_system.dto.SubscriptionResponse;
+import com.example.progetto_parking_system.enums.SpotType;
 import com.example.progetto_parking_system.enums.SubscriptionType;
+import com.example.progetto_parking_system.model.Spot;
 import com.example.progetto_parking_system.model.Subscription;
 import com.example.progetto_parking_system.model.User;
 import com.example.progetto_parking_system.model.Vehicle;
+import com.example.progetto_parking_system.repository.SpotRepository;
 import com.example.progetto_parking_system.repository.SubscriptionRepository;
 import com.example.progetto_parking_system.repository.UserRepository;
 import com.example.progetto_parking_system.repository.VehicleRepository;
@@ -30,13 +33,16 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
+    private final SpotRepository spotRepository;
 
     public SubscriptionService(SubscriptionRepository subscriptionRepository,
                                UserRepository userRepository,
-                               VehicleRepository vehicleRepository) {
+                               VehicleRepository vehicleRepository,
+                               SpotRepository spotRepository) {
         this.subscriptionRepository = subscriptionRepository;
         this.userRepository = userRepository;
         this.vehicleRepository = vehicleRepository;
+        this.spotRepository = spotRepository;
     }
 
     /**
@@ -80,6 +86,24 @@ public class SubscriptionService {
             default:        end = start.plusMonths(1);  price = PRICE_MONTHLY;   break;
         }
 
+        // --- Gestione Posto Assegnato ---
+        SpotType vType;
+        try {
+            vType = request.getVehicleType() != null 
+                ? SpotType.valueOf(request.getVehicleType().toUpperCase()) 
+                : SpotType.CAR;
+        } catch (Exception e) {
+            throw new RuntimeException("Tipo veicolo non valido. Valori: CAR, MOTORBIKE, ELECTRIC, HANDICAPPED");
+        }
+
+        // Cerca un posto libero del tipo richiesto
+        Spot spot = spotRepository.findFirstByTypeAndOccupiedFalse(vType)
+            .orElseThrow(() -> new RuntimeException("Nessun posto disponibile per il tipo " + vType));
+        
+        // Occupa il posto (verrà tenuto per tutta la durata dell'abbonamento)
+        spot.setOccupied(true);
+        spotRepository.save(spot);
+
         // Recupera i veicoli richiesti che appartengono all'utente
         List<Vehicle> vehicles = new ArrayList<>();
         if (request.getVehicleIds() != null && !request.getVehicleIds().isEmpty()) {
@@ -95,6 +119,8 @@ public class SubscriptionService {
         Subscription sub = new Subscription();
         sub.setUser(user);
         sub.setType(type);
+        sub.setVehicleType(vType);
+        sub.setAssignedSpot(spot);
         sub.setStartDate(start);
         sub.setEndDate(end);
         sub.setActive(true);
@@ -130,6 +156,12 @@ public class SubscriptionService {
         Subscription sub = opt.get();
         if (LocalDate.now().isAfter(sub.getEndDate())) {
             sub.setActive(false);
+            if (sub.getAssignedSpot() != null) {
+                Spot spot = sub.getAssignedSpot();
+                spot.setOccupied(false);
+                spotRepository.save(spot);
+                sub.setAssignedSpot(null); // Rimuovi assegnazione se scaduto
+            }
             subscriptionRepository.save(sub);
             SubscriptionResponse r = new SubscriptionResponse();
             r.setMessage("Abbonamento scaduto il " + sub.getEndDate());
@@ -153,6 +185,8 @@ public class SubscriptionService {
         return new SubscriptionResponse(
                 s.getId(),
                 s.getType() != null ? s.getType().name() : null,
+                s.getVehicleType() != null ? s.getVehicleType().name() : null,
+                s.getAssignedSpot() != null ? s.getAssignedSpot().getCode() : null,
                 s.getStartDate(),
                 s.getEndDate(),
                 s.getQrCode(),

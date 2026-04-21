@@ -14,6 +14,7 @@ public class RegisterRequest {
     private String password;
 
     private String subscriptionType; // e.g. MONTHLY, QUARTERLY, YEARLY
+    private String vehicleType;      // CAR, MOTORBIKE, ELECTRIC, HANDICAPPED
 
     public String getUsername() {
         return username;
@@ -37,5 +38,13 @@ public class RegisterRequest {
 
     public void setSubscriptionType(String subscriptionType) {
         this.subscriptionType = subscriptionType;
+    }
+
+    public String getVehicleType() {
+        return vehicleType;
+    }
+
+    public void setVehicleType(String vehicleType) {
+        this.vehicleType = vehicleType;
     }
 }

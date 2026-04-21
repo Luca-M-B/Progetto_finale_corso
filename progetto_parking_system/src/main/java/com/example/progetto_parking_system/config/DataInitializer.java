@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 /**
  * Inizializza il database con 1 parcheggio, 3 piani da 100 posti ciascuno.
  * Distribuzione per piano:
- *   - 5  posti HANDICAPPED (5%)
- *   - 10 posti ELECTRIC    (10%)
- *   - 10 posti MOTORBIKE   (10%)
- *   - 75 posti CAR         (75%)
+ * - 5 posti HANDICAPPED (5%)
+ * - 10 posti ELECTRIC (10%)
+ * - 10 posti MOTORBIKE (10%)
+ * - 75 posti CAR (75%)
  * Eseguito solo se il DB è vuoto (nessun posto presente).
  */
 @Component
@@ -27,8 +27,8 @@ public class DataInitializer implements CommandLineRunner {
     private final SpotRepository spotRepository;
 
     public DataInitializer(ParkingRepository parkingRepository,
-                           FloorRepository floorRepository,
-                           SpotRepository spotRepository) {
+            FloorRepository floorRepository,
+            SpotRepository spotRepository) {
         this.parkingRepository = parkingRepository;
         this.floorRepository = floorRepository;
         this.spotRepository = spotRepository;
@@ -50,7 +50,7 @@ public class DataInitializer implements CommandLineRunner {
         parking.setLocation("Via Roma 1, Milano");
         parking = parkingRepository.save(parking);
 
-        int[] floorLevels = {1, 2, 3};
+        int[] floorLevels = { 1, 2, 3 };
 
         for (int level : floorLevels) {
             Floor floor = new Floor();

@@ -15,6 +15,8 @@ import java.util.List;
 public class SubscriptionResponse {
     private Long id;
     private String type;
+    private String vehicleType;
+    private String spotCode;
     private LocalDate startDate;
     private LocalDate endDate;
     private String qrCode;
