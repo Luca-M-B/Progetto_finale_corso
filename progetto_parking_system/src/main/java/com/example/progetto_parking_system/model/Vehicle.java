@@ -14,8 +14,9 @@ public class Vehicle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String plateNumber;
-    private String type; // CAR, MOTORBIKE
+    private String targa;
+    private String modello;
+    private String tipo; // CAR, MOTORBIKE, ELECTRIC...
 
     @ManyToOne
     private User user;

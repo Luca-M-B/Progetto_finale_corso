@@ -143,7 +143,7 @@ public class SubscriptionService {
     private SubscriptionResponse toResponse(Subscription s, String message) {
         List<String> plates = s.getVehicles() == null ? List.of() :
                 s.getVehicles().stream()
-                        .map(v -> v.getPlateNumber() != null ? v.getPlateNumber() : "—")
+                        .map(v -> v.getTarga() != null ? v.getTarga() : "—")
                         .collect(Collectors.toList());
 
         // Controlla e aggiorna automaticamente lo stato attivo

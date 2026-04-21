@@ -123,13 +123,13 @@ span { color: var(--primary); }
     border-bottom-color: var(--primary);
 }
 
-.auth-form {
+.auth-form, .modal-form {
     display: none;
     flex-direction: column;
     gap: 1.25rem;
 }
 
-.auth-form.active {
+.auth-form.active, .modal-form.active {
     display: flex;
     animation: fadeIn 0.4s ease-in;
 }

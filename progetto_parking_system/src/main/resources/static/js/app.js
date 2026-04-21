@@ -364,8 +364,10 @@ async function fetchVehicles() {
 function openAddVehicleModal() {
     const modal = document.getElementById('vehicle-modal');
     modal.querySelector('h2').textContent = 'Aggiungi Veicolo';
-    document.getElementById('add-vehicle-form').reset();
-    document.getElementById('add-vehicle-form').dataset.editId = '';
+    const form = document.getElementById('add-vehicle-form');
+    form.reset();
+    form.dataset.editId = '';
+    form.classList.add('active'); // Assicura visibilità
     modal.style.display = 'flex';
 }
 
@@ -522,6 +524,7 @@ async function openSubscriptionModal() {
         return;
     }
     modal.style.display = 'flex';
+    document.getElementById('subscription-form').classList.add('active');
 
     const listEl = document.getElementById('sub-vehicles-list');
     if (listEl) {

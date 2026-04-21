@@ -66,7 +66,7 @@ public class GateService {
         String plate = licensePlate.toUpperCase().trim();
         if (sub.getVehicles() != null && !sub.getVehicles().isEmpty()) {
             boolean plateAllowed = sub.getVehicles().stream()
-                    .anyMatch(v -> plate.equalsIgnoreCase(v.getPlateNumber()));
+                    .anyMatch(v -> plate.equalsIgnoreCase(v.getTarga()));
             if (!plateAllowed) {
                 GateResponse r = new GateResponse();
                 r.setSuccess(false);
