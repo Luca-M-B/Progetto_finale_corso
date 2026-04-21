@@ -10,6 +10,15 @@ let appState = {
     currentView: 'auth'
 };
 
+// License Plate Validation (Basic European Regex)
+function isValidPlate(plate) {
+    // Rimuove spazi e trattini per la validazione interna
+    const cleanPlate = plate.replace(/[\s\-]/g, '').toUpperCase();
+    // Formato generale: Alfanumerico, tra 4 e 10 caratteri
+    const plateRegex = /^[A-Z0-9]{4,10}$/;
+    return plateRegex.test(cleanPlate);
+}
+
 // DOM Elements
 const views = {
     auth: document.getElementById('auth-view'),
@@ -393,9 +402,15 @@ async function handleAddVehicle(e) {
     const editId = e.target.dataset.editId;
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Salvataggio...';
 
+    const targaRaw = document.getElementById('veh-targa').value.trim();
+    if (!isValidPlate(targaRaw)) {
+        showToast('Formato targa non valido. Usa un formato europeo standard (es. AA123BB).', 'error');
+        return;
+    }
+
     try {
         const payload = {
-            targa: document.getElementById('veh-targa').value.trim(),
+            targa: targaRaw.toUpperCase().replace(/[\s\-]/g, ''),
             tipo: appState.activeSubscriptionVehicleType || 'CAR' // Preso automaticamente dall'abbonamento
         };
 
@@ -685,6 +700,11 @@ async function handleGateCheckIn() {
     const disability = document.getElementById('gate-disability').checked;
 
     if (!plate) { showToast('Inserisci la targa', 'error'); return; }
+    
+    if (!isValidPlate(plate)) {
+        showToast('Targa non valida. Inserisci un formato corretto (es. AA123BB).', 'error');
+        return;
+    }
 
     try {
         const res = await fetch(`${API_BASE}/api/gate/check-in`, {

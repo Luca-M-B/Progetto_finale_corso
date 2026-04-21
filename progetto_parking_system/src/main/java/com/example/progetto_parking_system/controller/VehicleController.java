@@ -45,6 +45,13 @@ public class VehicleController {
     @PostMapping
     public ResponseEntity<?> create(@RequestBody Vehicle entity, Authentication auth) {
         log.info("Creazione veicolo per utente: {}", auth.getName());
+        
+        String plate = entity.getTarga() != null ? entity.getTarga().toUpperCase().replace(" ", "").replace("-", "") : "";
+        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
+            return ResponseEntity.badRequest().body("Formato targa non valido (4-10 caratteri alfanumerici)");
+        }
+        entity.setTarga(plate);
+
         java.util.Optional<com.example.progetto_parking_system.model.User> userOpt = userRepository.findByUsername(auth.getName());
         
         if (userOpt.isPresent()) {
@@ -59,6 +66,12 @@ public class VehicleController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Vehicle entity, Authentication auth) {
+        String plate = entity.getTarga() != null ? entity.getTarga().toUpperCase().replace(" ", "").replace("-", "") : "";
+        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
+            return ResponseEntity.badRequest().body("Formato targa non valido");
+        }
+        entity.setTarga(plate);
+
         return service.findById(id)
                 .map(existing -> {
                     if (existing.getUser() != null && !existing.getUser().getUsername().equals(auth.getName())) {

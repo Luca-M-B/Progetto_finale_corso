@@ -42,6 +42,16 @@ public class GateService {
      */
     @Transactional
     public GateResponse handleSubscriptionCheckIn(String subscriptionQr, String licensePlate) {
+        String plate = licensePlate != null ? licensePlate.toUpperCase().replace(" ", "").replace("-", "") : "";
+        
+        // Validazione Targa
+        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Formato targa non valido (es: AA123BB)");
+            return r;
+        }
+
         Optional<Subscription> subOpt = subscriptionRepository.findByQrCodeAndActiveTrue(subscriptionQr);
         if (subOpt.isEmpty()) {
             GateResponse r = new GateResponse();
@@ -62,9 +72,7 @@ public class GateService {
             return r;
         }
 
-        // Verifica che la targa sia tra quelle dell'abbonamento (se ci sono veicoli
-        // associati)
-        String plate = licensePlate.toUpperCase().trim();
+        // Verifica che la targa sia tra quelle dell'abbonamento (se ci sono veicoli associati)
         if (sub.getVehicles() != null && !sub.getVehicles().isEmpty()) {
             boolean plateAllowed = sub.getVehicles().stream()
                     .anyMatch(v -> plate.equalsIgnoreCase(v.getTarga()));
@@ -130,6 +138,16 @@ public class GateService {
 
     @Transactional
     public GateResponse handleCheckIn(GateCheckInRequest request) {
+        String plate = request.getLicensePlate() != null ? request.getLicensePlate().toUpperCase().replace(" ", "").replace("-", "") : "";
+        
+        // Validazione Targa (Formato Europeo base: alfanumerico 4-10 caratteri)
+        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Formato targa non valido. Inserire una targa europea standard (es: AA123BB)");
+            return r;
+        }
+
         String vehicleType = request.getVehicleType() != null
                 ? request.getVehicleType().toUpperCase()
                 : "CAR";
