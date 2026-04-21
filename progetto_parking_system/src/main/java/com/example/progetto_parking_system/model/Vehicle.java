@@ -15,8 +15,8 @@ public class Vehicle {
     private Long id;
 
     private String targa;
-    private String modello;
     private String tipo; // CAR, MOTORBIKE, ELECTRIC...
+    // qui manca modello ma non serve
 
     @ManyToOne
     private User user;

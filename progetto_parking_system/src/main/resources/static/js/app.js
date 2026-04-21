@@ -334,21 +334,21 @@ async function fetchVehicles() {
         }
 
         grid.innerHTML = vehicles.map(v => `
-            <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;">
+            <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem; position:relative;">
                 <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-                    <div class="stat-icon" style="width:40px;height:40px;font-size:1.2rem;">
+                    <div class="stat-icon" style="width:40px;height:40px;font-size:1.2rem;background:rgba(99,179,237,0.15);">
                         <i class="fa-solid fa-car"></i>
                     </div>
-                    <span style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:4px;font-size:0.8rem;">
-                        ${v.targa || 'N/A'}
+                    <span style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:4px;font-size:0.85rem;font-weight:600;letter-spacing:0.05em;">
+                        ${v.targa}
                     </span>
                 </div>
-                <h3 style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">${v.modello || 'Modello Sconosciuto'}</h3>
-                <p style="font-size:0.85rem;color:var(--text-muted);">Tipo: ${v.tipo || 'Auto'}</p>
+                <h3 style="color:#fff;font-size:1rem;margin:0.5rem 0 0.2rem 0;">Tipo: ${v.tipo}</h3>
+                
                 <div style="display:flex;gap:10px;margin-top:1rem;width:100%;">
                     <button class="btn-primary" style="flex:1;padding:0.4rem;font-size:0.85rem;background:rgba(255,255,255,0.1);color:#fff;"
-                        onclick="openEditVehicleModal(${v.id}, '${v.targa}', '${v.modello}', '${v.tipo}')">
-                        <i class="fa-solid fa-pen"></i>
+                        onclick='openEditVehicleModal(${JSON.stringify(v).replace(/"/g, '&quot;')})'>
+                        <i class="fa-solid fa-pen"></i> Modifica
                     </button>
                     <button class="btn-primary" style="flex:1;padding:0.4rem;font-size:0.85rem;background:var(--danger);"
                         onclick="deleteVehicle(${v.id})">
@@ -368,17 +368,16 @@ function openAddVehicleModal() {
     const form = document.getElementById('add-vehicle-form');
     form.reset();
     form.dataset.editId = '';
-    form.classList.add('active'); // Assicura visibilità
     modal.style.display = 'flex';
 }
 
-function openEditVehicleModal(id, targa, modello, tipo) {
+function openEditVehicleModal(v) {
     const modal = document.getElementById('vehicle-modal');
     modal.querySelector('h2').textContent = 'Modifica Veicolo';
-    document.getElementById('veh-targa').value = targa;
-    document.getElementById('veh-modello').value = modello;
-    document.getElementById('veh-tipo').value = tipo;
-    document.getElementById('add-vehicle-form').dataset.editId = id;
+    const form = document.getElementById('add-vehicle-form');
+    form.dataset.editId = v.id;
+    document.getElementById('veh-targa').value = v.targa;
+    document.getElementById('veh-tipo').value = v.tipo;
     modal.style.display = 'flex';
 }
 
@@ -397,7 +396,6 @@ async function handleAddVehicle(e) {
     try {
         const payload = {
             targa: document.getElementById('veh-targa').value.trim(),
-            modello: document.getElementById('veh-modello').value.trim(),
             tipo: document.getElementById('veh-tipo').value.trim()
         };
 
