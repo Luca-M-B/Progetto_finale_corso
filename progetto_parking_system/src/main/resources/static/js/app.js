@@ -6,6 +6,7 @@ let appState = {
     username: localStorage.getItem('username') || null,
     role: localStorage.getItem('role') || null,
     hasActiveSubscription: false,
+    activeSubscriptionVehicleType: null, // Tipo veicolo dell'abbonamento attivo
     currentView: 'auth'
 };
 
@@ -377,7 +378,6 @@ function openEditVehicleModal(v) {
     const form = document.getElementById('add-vehicle-form');
     form.dataset.editId = v.id;
     document.getElementById('veh-targa').value = v.targa;
-    document.getElementById('veh-tipo').value = v.tipo;
     modal.style.display = 'flex';
 }
 
@@ -396,7 +396,7 @@ async function handleAddVehicle(e) {
     try {
         const payload = {
             targa: document.getElementById('veh-targa').value.trim(),
-            tipo: document.getElementById('veh-tipo').value.trim()
+            tipo: appState.activeSubscriptionVehicleType || 'CAR' // Preso automaticamente dall'abbonamento
         };
 
         let res;
@@ -458,7 +458,10 @@ async function fetchSubscriptions() {
         const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
 
         // Aggiorna lo stato globale in base agli abbonamenti ricevuti
-        appState.hasActiveSubscription = subs.some(s => s.active !== false && new Date(s.endDate) > new Date());
+        const activeSub = subs.find(s => s.active !== false && new Date(s.endDate) > new Date());
+        appState.hasActiveSubscription = !!activeSub;
+        appState.activeSubscriptionVehicleType = activeSub ? activeSub.vehicleType : 'CAR'; // Default CAR se senza abbonamento
+        
         applySubscriptionUI();
 
         grid.innerHTML = subs.map(s => {
