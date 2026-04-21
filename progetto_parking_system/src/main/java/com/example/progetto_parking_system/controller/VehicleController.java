@@ -47,8 +47,17 @@ public class VehicleController {
         log.info("Creazione veicolo per utente: {}", auth.getName());
         
         String plate = entity.getTarga() != null ? entity.getTarga().toUpperCase().replace(" ", "").replace("-", "") : "";
-        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
-            return ResponseEntity.badRequest().body("Formato targa non valido (4-10 caratteri alfanumerici)");
+        String vType = entity.getTipo() != null ? entity.getTipo().toUpperCase() : "CAR";
+
+        boolean isValid;
+        if ("MOTORBIKE".equalsIgnoreCase(vType)) {
+            isValid = plate.matches("^[A-Z0-9]{5,7}$");
+        } else {
+            isValid = plate.matches("^[A-Z0-9]{7,10}$");
+        }
+
+        if (!isValid) {
+            return ResponseEntity.badRequest().body("Formato targa non valido per il tipo " + vType);
         }
         entity.setTarga(plate);
 
@@ -67,8 +76,17 @@ public class VehicleController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Vehicle entity, Authentication auth) {
         String plate = entity.getTarga() != null ? entity.getTarga().toUpperCase().replace(" ", "").replace("-", "") : "";
-        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
-            return ResponseEntity.badRequest().body("Formato targa non valido");
+        String vType = entity.getTipo() != null ? entity.getTipo().toUpperCase() : "CAR";
+
+        boolean isValid;
+        if ("MOTORBIKE".equalsIgnoreCase(vType)) {
+            isValid = plate.matches("^[A-Z0-9]{5,7}$");
+        } else {
+            isValid = plate.matches("^[A-Z0-9]{7,10}$");
+        }
+
+        if (!isValid) {
+            return ResponseEntity.badRequest().body("Formato targa non valido per il tipo " + vType);
         }
         entity.setTarga(plate);
 

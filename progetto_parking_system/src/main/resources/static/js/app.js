@@ -10,13 +10,17 @@ let appState = {
     currentView: 'auth'
 };
 
-// License Plate Validation (Basic European Regex)
-function isValidPlate(plate) {
-    // Rimuove spazi e trattini per la validazione interna
+// License Plate Validation (Differentiated by type)
+function isValidPlate(plate, type = 'CAR') {
     const cleanPlate = plate.replace(/[\s\-]/g, '').toUpperCase();
-    // Formato generale: Alfanumerico, tra 4 e 10 caratteri
-    const plateRegex = /^[A-Z0-9]{4,10}$/;
-    return plateRegex.test(cleanPlate);
+    
+    if (type === 'MOTORBIKE') {
+        // Moto: Spesso più corte (5-7 caratteri)
+        return /^[A-Z0-9]{5,7}$/.test(cleanPlate);
+    } else {
+        // Auto: Standard europeo (7-10 caratteri)
+        return /^[A-Z0-9]{7,10}$/.test(cleanPlate);
+    }
 }
 
 // DOM Elements
@@ -402,16 +406,17 @@ async function handleAddVehicle(e) {
     const editId = e.target.dataset.editId;
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Salvataggio...';
 
+    const vType = appState.activeSubscriptionVehicleType || 'CAR';
     const targaRaw = document.getElementById('veh-targa').value.trim();
-    if (!isValidPlate(targaRaw)) {
-        showToast('Formato targa non valido. Usa un formato europeo standard (es. AA123BB).', 'error');
+    if (!isValidPlate(targaRaw, vType)) {
+        showToast(`Targa non valida per il tipo ${vType}.`, 'error');
         return;
     }
 
     try {
         const payload = {
             targa: targaRaw.toUpperCase().replace(/[\s\-]/g, ''),
-            tipo: appState.activeSubscriptionVehicleType || 'CAR' // Preso automaticamente dall'abbonamento
+            tipo: vType
         };
 
         let res;
@@ -701,8 +706,8 @@ async function handleGateCheckIn() {
 
     if (!plate) { showToast('Inserisci la targa', 'error'); return; }
     
-    if (!isValidPlate(plate)) {
-        showToast('Targa non valida. Inserisci un formato corretto (es. AA123BB).', 'error');
+    if (!isValidPlate(plate, type)) {
+        showToast(`Targa non valida per un veicolo di tipo ${type}.`, 'error');
         return;
     }
 

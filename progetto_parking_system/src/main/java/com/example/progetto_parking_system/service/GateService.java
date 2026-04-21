@@ -42,17 +42,8 @@ public class GateService {
      */
     @Transactional
     public GateResponse handleSubscriptionCheckIn(String subscriptionQr, String licensePlate) {
-        String plate = licensePlate != null ? licensePlate.toUpperCase().replace(" ", "").replace("-", "") : "";
-        
-        // Validazione Targa
-        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
-            GateResponse r = new GateResponse();
-            r.setSuccess(false);
-            r.setMessage("Formato targa non valido (es: AA123BB)");
-            return r;
-        }
-
         Optional<Subscription> subOpt = subscriptionRepository.findByQrCodeAndActiveTrue(subscriptionQr);
+
         if (subOpt.isEmpty()) {
             GateResponse r = new GateResponse();
             r.setSuccess(false);
@@ -61,6 +52,25 @@ public class GateService {
         }
 
         Subscription sub = subOpt.get();
+        String plate = licensePlate != null ? licensePlate.toUpperCase().replace(" ", "").replace("-", "") : "";
+
+        // Determiniamo il tipo previsto (dall'abbonamento)
+        String vType = sub.getVehicleType() != null ? sub.getVehicleType().name() : "CAR";
+
+        // Validazione Targa differenziata
+        boolean isValid;
+        if ("MOTORBIKE".equalsIgnoreCase(vType)) {
+            isValid = plate.matches("^[A-Z0-9]{5,7}$");
+        } else {
+            isValid = plate.matches("^[A-Z0-9]{7,10}$");
+        }
+
+        if (!isValid) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Formato targa non valido per il tipo " + vType);
+            return r;
+        }
 
         // Controlla scadenza
         if (LocalDate.now().isAfter(sub.getEndDate())) {
@@ -72,7 +82,8 @@ public class GateService {
             return r;
         }
 
-        // Verifica che la targa sia tra quelle dell'abbonamento (se ci sono veicoli associati)
+        // Verifica che la targa sia tra quelle dell'abbonamento (se ci sono veicoli
+        // associati)
         if (sub.getVehicles() != null && !sub.getVehicles().isEmpty()) {
             boolean plateAllowed = sub.getVehicles().stream()
                     .anyMatch(v -> plate.equalsIgnoreCase(v.getTarga()));
@@ -87,29 +98,31 @@ public class GateService {
         // Usa il posto già assegnato all'abbonamento
         Spot spot = sub.getAssignedSpot();
         if (spot != null) {
-            // Assicuriamoci che risulti occupato nel DB (es. dopo un reset-test o se liberato per errore)
+            // Assicuriamoci che risulti occupato nel DB (es. dopo un reset-test o se
+            // liberato per errore)
             if (!spot.isOccupied()) {
                 spot.setOccupied(true);
                 spotRepository.save(spot);
             }
         } else {
-             // Fallback se per qualche motivo non ha un posto assegnato
-             Optional<Spot> spotOpt = spotRepository.findFirstByTypeAndOccupiedFalse(
-                     sub.getVehicleType() != null ? sub.getVehicleType() : SpotType.CAR);
-             if (spotOpt.isEmpty()) spotOpt = spotRepository.findFirstByOccupiedFalse();
-             
-             if (spotOpt.isEmpty()) {
-                 GateResponse r = new GateResponse();
-                 r.setSuccess(false);
-                 r.setMessage("Nessun posto disponibile");
-                 return r;
-             }
-             spot = spotOpt.get();
-             spot.setOccupied(true);
-             spotRepository.save(spot);
-             
-             sub.setAssignedSpot(spot);
-             subscriptionRepository.save(sub);
+            // Fallback se per qualche motivo non ha un posto assegnato
+            Optional<Spot> spotOpt = spotRepository.findFirstByTypeAndOccupiedFalse(
+                    sub.getVehicleType() != null ? sub.getVehicleType() : SpotType.CAR);
+            if (spotOpt.isEmpty())
+                spotOpt = spotRepository.findFirstByOccupiedFalse();
+
+            if (spotOpt.isEmpty()) {
+                GateResponse r = new GateResponse();
+                r.setSuccess(false);
+                r.setMessage("Nessun posto disponibile");
+                return r;
+            }
+            spot = spotOpt.get();
+            spot.setOccupied(true);
+            spotRepository.save(spot);
+
+            sub.setAssignedSpot(spot);
+            subscriptionRepository.save(sub);
         }
 
         LocalDateTime entryTime = LocalDateTime.now();
@@ -138,23 +151,29 @@ public class GateService {
 
     @Transactional
     public GateResponse handleCheckIn(GateCheckInRequest request) {
-        String plate = request.getLicensePlate() != null ? request.getLicensePlate().toUpperCase().replace(" ", "").replace("-", "") : "";
-        
-        // Validazione Targa (Formato Europeo base: alfanumerico 4-10 caratteri)
-        if (!plate.matches("^[A-Z0-9]{4,10}$")) {
+        String plate = request.getLicensePlate() != null
+                ? request.getLicensePlate().toUpperCase().replace(" ", "").replace("-", "")
+                : "";
+        String vType = request.getVehicleType() != null ? request.getVehicleType().toUpperCase() : "CAR";
+
+        // Validazione Targa differenziata
+        boolean isValid;
+        if ("MOTORBIKE".equalsIgnoreCase(vType)) {
+            isValid = plate.matches("^[A-Z0-9]{5,7}$");
+        } else {
+            isValid = plate.matches("^[A-Z0-9]{7,10}$");
+        }
+
+        if (!isValid) {
             GateResponse r = new GateResponse();
             r.setSuccess(false);
-            r.setMessage("Formato targa non valido. Inserire una targa europea standard (es: AA123BB)");
+            r.setMessage("Formato targa non valido per il tipo " + vType);
             return r;
         }
 
-        String vehicleType = request.getVehicleType() != null
-                ? request.getVehicleType().toUpperCase()
-                : "CAR";
-
         // Determina tipo di posto in base al veicolo
         SpotType desiredType;
-        switch (vehicleType) {
+        switch (vType) {
             case "MOTORBIKE":
                 desiredType = SpotType.MOTORBIKE;
                 break;
@@ -190,7 +209,7 @@ public class GateService {
 
         ParkingSession session = new ParkingSession();
         session.setLicensePlate(request.getLicensePlate().toUpperCase().trim());
-        session.setVehicleType(vehicleType);
+        session.setVehicleType(vType);
         session.setHasDisability(Boolean.TRUE.equals(request.getHasDisability()));
         session.setEntryTime(entryTime);
         session.setIsCompleted(false);
@@ -276,7 +295,7 @@ public class GateService {
         Spot spot = session.getSpot();
         String spotCode = spot != null ? spot.getCode() : "N/A";
         int floorLevel = (spot != null && spot.getFloor() != null) ? spot.getFloor().getLevel() : 0;
-        
+
         if (spot != null) {
             boolean isAssignedToActiveSub = subscriptionRepository.existsByAssignedSpotAndActiveTrue(spot);
             if (!isAssignedToActiveSub) {
@@ -329,7 +348,8 @@ public class GateService {
         }
         sessionRepository.saveAll(openSessions);
 
-        // 2. Libera tutti i posti occupati (tranne quelli assegnati ad abbonamenti attivi)
+        // 2. Libera tutti i posti occupati (tranne quelli assegnati ad abbonamenti
+        // attivi)
         java.util.List<com.example.progetto_parking_system.model.Spot> occupiedSpots = spotRepository
                 .findAllByOccupied(true);
         for (com.example.progetto_parking_system.model.Spot sp : occupiedSpots) {
