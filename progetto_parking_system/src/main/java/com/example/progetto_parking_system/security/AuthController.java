@@ -14,10 +14,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import java.util.Map;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.example.progetto_parking_system.model.User;
 import com.example.progetto_parking_system.repository.UserRepository;
@@ -25,31 +29,26 @@ import com.example.progetto_parking_system.service.CustomUserDetailsService;
 import com.example.progetto_parking_system.service.SubscriptionService;
 import com.example.progetto_parking_system.dto.SubscriptionPurchaseRequest;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthenticationManager authManager;
+    private final CustomUserDetailsService userDetailsService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SubscriptionService subscriptionService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request, HttpServletRequest httpRequest) {
 
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        HttpSession session = servletRequest.getSession(true);
+        HttpSession session = httpRequest.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 SecurityContextHolder.getContext());
 

@@ -2,14 +2,10 @@ const API_BASE = 'http://localhost:8080';
 
 // App State
 let appState = {
-<<<<<<< HEAD
     isLoggedIn: localStorage.getItem('isLoggedIn') === 'true',
     username: localStorage.getItem('username') || null,
-    hasActiveSubscription: false,
-=======
-    username: localStorage.getItem('username') || null,
     role: localStorage.getItem('role') || null,
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
+    hasActiveSubscription: false,
     currentView: 'auth'
 };
 
@@ -38,11 +34,7 @@ function setupEventListeners() {
 
 // Authentication Logic
 function checkAuthState() {
-<<<<<<< HEAD
-    if (appState.isLoggedIn) {
-=======
-    if (appState.username) {
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
+    if (appState.isLoggedIn || appState.username) {
         showView('dashboard');
         document.getElementById('display-username').textContent = appState.username || 'Utente';
         loadSection('dashboard');
@@ -84,18 +76,14 @@ async function handleLogin(e) {
         if (!res.ok) throw new Error('Credenziali non valide');
         const data = await res.json();
 
-<<<<<<< HEAD
         appState.isLoggedIn = true;
         appState.username = data.username;
+        appState.role = data.role || 'USER';
         appState.hasActiveSubscription = !!data.hasActiveSubscription;
+        
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('username', data.username);
-=======
-        appState.username = data.username;
-        appState.role = data.role;
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('role', data.role || '');
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
+        localStorage.setItem('role', appState.role);
 
         document.getElementById('display-username').textContent = data.username;
         applySubscriptionUI();
@@ -141,13 +129,6 @@ async function handleRegister(e) {
     }
 }
 
-<<<<<<< HEAD
-function logout() {
-    appState.isLoggedIn = false;
-    appState.username = null;
-    appState.hasActiveSubscription = false;
-    localStorage.removeItem('isLoggedIn');
-=======
 async function logout() {
     try {
         await fetch(`${API_BASE}/auth/logout`, {
@@ -156,9 +137,12 @@ async function logout() {
         });
     } catch (_) { /* ignora errori di rete */ }
 
+    appState.isLoggedIn = false;
     appState.username = null;
     appState.role = null;
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
+    appState.hasActiveSubscription = false;
+    
+    localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
     checkAuthState();
@@ -280,43 +264,33 @@ function fetchData() {
 
 // ─── API Helper ──────────────────────────────────────────────────────────────
 async function fetchWithAuth(url, options = {}) {
-<<<<<<< HEAD
-    // Ora usiamo fetch senza token Bearer, tutto è open (permitAll sul backend)
-=======
-    if (!appState.username) { logout(); throw new Error('Non autenticato'); }
-
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
+    if (!appState.username && !appState.isLoggedIn) { 
+        logout(); 
+        throw new Error('Non autenticato'); 
+    }
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers
     };
 
-<<<<<<< HEAD
-    const response = await fetch(`${API_BASE}${url}`, { 
-        ...options, 
-        headers,
-        credentials: 'include'
-=======
     const response = await fetch(`${API_BASE}${url}`, {
         ...options,
         headers,
         credentials: 'include'   // invia automaticamente il cookie di sessione
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
     });
 
     // Se il server restituisce 401/403, andiamo comunque al login view
     if (response.status === 401 || response.status === 403) {
-<<<<<<< HEAD
-        logout();
-        throw new Error('Accesso negato');
-=======
+    if (response.status === 401 || response.status === 403) {
+        appState.isLoggedIn = false;
         appState.username = null;
         appState.role = null;
+        localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('username');
         localStorage.removeItem('role');
         showView('auth');
         throw new Error('Sessione scaduta o accesso negato');
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
+    }
     }
 
     return response;

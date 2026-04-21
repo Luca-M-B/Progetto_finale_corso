@@ -20,12 +20,6 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-<<<<<<< HEAD
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED))
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll());
-=======
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
@@ -33,7 +27,6 @@ public class SecurityConfig {
                         .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/auth/**",
                                          "/api/gate/**", "/api/subscriptions/verify/**").permitAll()
                         .anyRequest().authenticated());
->>>>>>> 0baef0c8eaef52fa09acb466535c2d352c2eb1b7
 
         return http.build();
     }
