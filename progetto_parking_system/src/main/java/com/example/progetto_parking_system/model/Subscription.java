@@ -37,6 +37,9 @@ public class Subscription {
     /** Flag: abbonamento attivo (non scaduto e non cancellato) */
     private Boolean active = true;
 
+    /** Flag: abbonamento rimosso dall'utente (va nel cestino) */
+    private Boolean deleted = false;
+
     /** Prezzo pagato all'acquisto */
     private Double pricePaid;
 

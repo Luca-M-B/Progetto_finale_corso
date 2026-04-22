@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
-    List<Subscription> findByUserUsername(String username);
-    Optional<Subscription> findByQrCodeAndActiveTrue(String qrCode);
-    List<Subscription> findByUserUsernameAndActiveTrue(String username);
-    boolean existsByAssignedSpotAndActiveTrue(Spot assignedSpot);
+    List<Subscription> findByUserUsernameAndDeletedFalse(String username);
+    List<Subscription> findByUserUsernameAndDeletedTrue(String username);
+    Optional<Subscription> findByQrCodeAndActiveTrueAndDeletedFalse(String qrCode);
+    List<Subscription> findByUserUsernameAndActiveTrueAndDeletedFalse(String username);
+    boolean existsByAssignedSpotAndActiveTrueAndDeletedFalse(Spot assignedSpot);
 }

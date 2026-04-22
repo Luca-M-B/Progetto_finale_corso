@@ -42,7 +42,7 @@ public class GateService {
      */
     @Transactional
     public GateResponse handleSubscriptionCheckIn(String subscriptionQr, String licensePlate) {
-        Optional<Subscription> subOpt = subscriptionRepository.findByQrCodeAndActiveTrue(subscriptionQr);
+        Optional<Subscription> subOpt = subscriptionRepository.findByQrCodeAndActiveTrueAndDeletedFalse(subscriptionQr);
 
         if (subOpt.isEmpty()) {
             GateResponse r = new GateResponse();
@@ -305,7 +305,7 @@ public class GateService {
         int floorLevel = (spot != null && spot.getFloor() != null) ? spot.getFloor().getLevel() : 0;
 
         if (spot != null) {
-            boolean isAssignedToActiveSub = subscriptionRepository.existsByAssignedSpotAndActiveTrue(spot);
+            boolean isAssignedToActiveSub = subscriptionRepository.existsByAssignedSpotAndActiveTrueAndDeletedFalse(spot);
             if (!isAssignedToActiveSub) {
                 spot.setOccupied(false);
                 spotRepository.save(spot);
@@ -361,7 +361,7 @@ public class GateService {
         java.util.List<com.example.progetto_parking_system.model.Spot> occupiedSpots = spotRepository
                 .findAllByOccupied(true);
         for (com.example.progetto_parking_system.model.Spot sp : occupiedSpots) {
-            boolean isReserved = subscriptionRepository.existsByAssignedSpotAndActiveTrue(sp);
+            boolean isReserved = subscriptionRepository.existsByAssignedSpotAndActiveTrueAndDeletedFalse(sp);
             if (!isReserved) {
                 sp.setOccupied(false);
             }

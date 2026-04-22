@@ -218,8 +218,14 @@
                 <div class="data-section mt-4 hidden" id="subscriptions-section">
                     <div class="section-header">
                         <h3><i class="fa-solid fa-id-card" style="margin-right:6px;"></i>I Miei Abbonamenti</h3>
-                        <button class="btn-primary btn-sm" onclick="openSubscriptionModal()"><i
-                                class="fa-solid fa-plus"></i> Acquista</button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-primary btn-sm" style="background:var(--danger); border-color:var(--danger);" onclick="openBinModal()">
+                                <i class="fa-solid fa-trash"></i> Cestino
+                            </button>
+                            <button class="btn-primary btn-sm" onclick="openSubscriptionModal()">
+                                <i class="fa-solid fa-plus"></i> Acquista
+                            </button>
+                        </div>
                     </div>
                     <div class="grid-container" id="subscriptions-grid"></div>
                 </div>
@@ -321,6 +327,19 @@
             <p id="sub-validity" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;"></p>
             <p id="sub-vehicles-display" style="font-size:0.82rem;color:#63b3ed;margin-bottom:1rem;"></p>
             <button onclick="closeSubDetailModal()" class="btn-primary" style="width:100%;">Chiudi</button>
+        </div>
+    </div>
+
+    <!-- Modal Cestino Abbonamenti -->
+    <div id="bin-modal" class="view"
+        style="display:none; position:fixed; z-index:9100; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+        <div class="glass-panel auth-box" style="margin:auto; max-width:800px; width:90%; max-height:80vh; overflow-y:auto;">
+            <div class="auth-header">
+                <i class="fa-solid fa-trash logo-icon" style="color:var(--danger);"></i>
+                <h2>Abbonamenti Scaduti (Cestino)</h2>
+            </div>
+            <div id="bin-grid" class="grid-container" style="margin-top:1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
+            <button onclick="closeBinModal()" class="btn-primary mt-4" style="width:100%;">Chiudi</button>
         </div>
     </div>
 

@@ -64,7 +64,7 @@ public class SubscriptionService {
         LocalDate start = LocalDate.now();
         
         // Cerca se esiste già un abbonamento attivo per estenderlo
-        List<Subscription> activeSubs = subscriptionRepository.findByUserUsernameAndActiveTrue(username);
+        List<Subscription> activeSubs = subscriptionRepository.findByUserUsernameAndActiveTrueAndDeletedFalse(username);
         if (!activeSubs.isEmpty()) {
             // Se ne ha più di uno (raro ma possibile), prendiamo quello che scade più tardi
             LocalDate furthestEnd = activeSubs.stream()
@@ -136,7 +136,17 @@ public class SubscriptionService {
      * Elenco di tutti gli abbonamenti dell'utente (attivi e scaduti).
      */
     public List<SubscriptionResponse> getMySubscriptions(String username) {
-        return subscriptionRepository.findByUserUsername(username)
+        return subscriptionRepository.findByUserUsernameAndDeletedFalse(username)
+                .stream()
+                .map(s -> toResponse(s, null))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Elenco degli abbonamenti cancellati (nel cestino).
+     */
+    public List<SubscriptionResponse> getDeletedSubscriptions(String username) {
+        return subscriptionRepository.findByUserUsernameAndDeletedTrue(username)
                 .stream()
                 .map(s -> toResponse(s, null))
                 .collect(Collectors.toList());
@@ -147,7 +157,7 @@ public class SubscriptionService {
      * Restituisce i dettagli se valido, errore altrimenti.
      */
     public SubscriptionResponse verifyQrCode(String qrCode) {
-        Optional<Subscription> opt = subscriptionRepository.findByQrCodeAndActiveTrue(qrCode);
+        Optional<Subscription> opt = subscriptionRepository.findByQrCodeAndActiveTrueAndDeletedFalse(qrCode);
         if (opt.isEmpty()) {
             SubscriptionResponse r = new SubscriptionResponse();
             r.setMessage("QR code non valido o abbonamento non attivo");
@@ -209,8 +219,47 @@ public class SubscriptionService {
      * @return true se l'abbonamento è attivo e non scaduto
      */
     public boolean isSubscriptionQrActive(String qrCode) {
-        return subscriptionRepository.findByQrCodeAndActiveTrue(qrCode)
+        return subscriptionRepository.findByQrCodeAndActiveTrueAndDeletedFalse(qrCode)
                 .map(sub -> !LocalDate.now().isAfter(sub.getEndDate()))
                 .orElse(false);
+    }
+
+    /**
+     * Sposta un abbonamento nel cestino (soft delete).
+     * Solo gli abbonamenti scaduti possono essere spostati nel cestino.
+     */
+    @Transactional
+    public void softDelete(Long id, String username) {
+        Subscription sub = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Abbonamento non trovato"));
+        
+        if (sub.getUser() == null || !sub.getUser().getUsername().equalsIgnoreCase(username)) {
+            throw new RuntimeException("Non hai i permessi per eliminare questo abbonamento");
+        }
+
+        // Verifica se è scaduto (oggi o nel passato)
+        boolean isExpired = !LocalDate.now().isBefore(sub.getEndDate()) || Boolean.FALSE.equals(sub.getActive());
+        if (!isExpired) {
+            throw new RuntimeException("Puoi eliminare solo gli abbonamenti scaduti (scadenza: " + sub.getEndDate() + ")");
+        }
+
+        sub.setDeleted(true);
+        subscriptionRepository.save(sub);
+    }
+
+    /**
+     * Ripristina un abbonamento dal cestino.
+     */
+    @Transactional
+    public void restore(Long id, String username) {
+        Subscription sub = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Abbonamento non trovato"));
+        
+        if (!sub.getUser().getUsername().equals(username)) {
+            throw new RuntimeException("Non hai i permessi per ripristinare questo abbonamento");
+        }
+
+        sub.setDeleted(false);
+        subscriptionRepository.save(sub);
     }
 }

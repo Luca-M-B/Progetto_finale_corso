@@ -60,13 +60,31 @@ public class SubscriptionController {
                 .body(png);
     }
 
-    /** Cancella abbonamento per id (admin) */
+    /** Gli abbonamenti cancellati (cestino) */
+    @GetMapping("/deleted")
+    public ResponseEntity<List<SubscriptionResponse>> myDeletedSubscriptions(Authentication auth) {
+        return ResponseEntity.ok(subscriptionService.getDeletedSubscriptions(auth.getName()));
+    }
+
+    /** Sposta nel cestino (soft delete) */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (subscriptionService.findById(id).isPresent()) {
-            subscriptionService.deleteById(id);
+    public ResponseEntity<?> softDelete(Authentication auth, @PathVariable Long id) {
+        try {
+            subscriptionService.softDelete(id, auth.getName());
             return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }
-        return ResponseEntity.notFound().build();
+    }
+
+    /** Ripristina dal cestino */
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<?> restore(Authentication auth, @PathVariable Long id) {
+        try {
+            subscriptionService.restore(id, auth.getName());
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+        }
     }
 }

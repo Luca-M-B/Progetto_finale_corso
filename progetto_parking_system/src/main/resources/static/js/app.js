@@ -575,22 +575,104 @@ async function fetchSubscriptions() {
                         <p style="font-size:0.8rem;color:#63b3ed;margin-top:5px;">
                             <i class="fa-solid fa-car"></i> Veicoli: ${s.vehiclePlates.join(', ')}
                         </p>` : ''}
-                    <div style="display:flex;gap:8px;width:100%;margin-top:0.8rem;">
+                    <div style="display:flex;gap:8px;width:100%;margin-top:0.8rem;align-items:center;">
                         ${s.qrCode ? `
-                            <button class="btn-primary" style="flex:1;font-size:0.85rem;background:rgba(99,179,237,0.15);"
+                            <button class="btn-primary" style="flex:1;font-size:0.85rem;background:rgba(99,179,237,0.15);padding:8px 4px;"
                                 onclick='openSubDetailModal(${JSON.stringify(s)})'>
-                                <i class="fa-solid fa-qrcode"></i> Mostra QR
+                                <i class="fa-solid fa-qrcode"></i> QR
                             </button>` : ''}
-                        <button class="btn-primary btn-accent" style="flex:1;font-size:0.85rem;"
+                        <button class="btn-primary btn-accent" style="flex:1;font-size:0.85rem;padding:8px 4px;"
                             onclick='openSubscriptionModal()'>
                             <i class="fa-solid fa-rotate"></i> Rinnova
                         </button>
+                        ${!isActive ? `
+                        <button class="btn-primary" style="width:40px;height:36px;flex-shrink:0;background:rgba(239,68,68,0.15);color:var(--danger);border-color:transparent;display:flex;align-items:center;justify-content:center;"
+                            onclick='deleteSubscription(${s.id})' title="Sposta nel cestino">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>` : ''}
                     </div>
                 </div>
             `;
         }).join('');
     } catch (err) {
         grid.innerHTML = `<div style="grid-column:1/-1;color:var(--danger);">${err.message}</div>`;
+    }
+}
+
+async function deleteSubscription(id) {
+    if (!confirm('Vuoi spostare questo abbonamento scaduto nel cestino?')) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/subscriptions/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.message || 'Errore durante l\'eliminazione');
+        }
+        showToast('Abbonamento spostato nel cestino', 'success');
+        fetchSubscriptions();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function openBinModal() {
+    document.getElementById('bin-modal').style.display = 'flex';
+    fetchBinSubscriptions();
+}
+
+function closeBinModal() {
+    document.getElementById('bin-modal').style.display = 'none';
+}
+
+async function fetchBinSubscriptions() {
+    const grid = document.getElementById('bin-grid');
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
+    
+    try {
+        const res = await fetch(`${API_BASE}/api/subscriptions/deleted`, { credentials: 'include' });
+        const subs = await res.json();
+        
+        if (subs.length === 0) {
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);">Il cestino è vuoto</div>';
+            return;
+        }
+
+        const typeLabel = { 'MONTHLY': 'Mensile', 'QUARTERLY': 'Trimestrale', 'YEARLY': 'Annuale' };
+        const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : '—';
+
+        grid.innerHTML = subs.map(s => `
+            <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;border-color:rgba(239,68,68,0.2);">
+                <h3 style="color:#fff;font-size:1rem;margin:0;">${typeLabel[s.type] || s.type}</h3>
+                <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">
+                    Scaduto il: <strong>${fmtDate(s.endDate)}</strong>
+                </p>
+                <div style="display:flex;gap:8px;width:100%;margin-top:0.5rem;">
+                    <button class="btn-primary" style="flex:1;font-size:0.75rem;background:rgba(72,219,152,0.1);color:#48db98;border-color:#48db98;"
+                        onclick='restoreSubscription(${s.id})'>
+                        <i class="fa-solid fa-rotate-left"></i> Ripristina
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        grid.innerHTML = `<div style="grid-column:1/-1;color:var(--danger);">${err.message}</div>`;
+    }
+}
+
+async function restoreSubscription(id) {
+    try {
+        const res = await fetch(`${API_BASE}/api/subscriptions/${id}/restore`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        if (!res.ok) throw new Error('Errore durante il ripristino');
+        showToast('Abbonamento ripristinato', 'success');
+        fetchBinSubscriptions();
+        fetchSubscriptions();
+    } catch (err) {
+        showToast(err.message, 'error');
     }
 }
 
