@@ -1,68 +1,82 @@
-# ParkSync - Sistema di Gestione Parcheggio Intelligente
+# ParkSync - Smart Parking Management System
 
-**ParkSync** è un'applicazione web moderna per la gestione automatizzata di un parcheggio multipiano. Il sistema è progettato per ottimizzare l'assegnazione dei posti, gestire abbonamenti ricorrenti e fornire un'interfaccia intuitiva sia per gli utenti che per la simulazione degli accessi (Gate).
-
-## 🎯 Obiettivi del Progetto
-
-L'obiettivo principale di ParkSync è eliminare la gestione manuale del parcheggio, introducendo:
-1.  **Assegnazione Dinamica**: Selezione automatica del miglior posto disponibile in base alla tipologia di veicolo (Auto, Moto, Elettrica, Disabili).
-2.  **Sistema di Abbonamento Premium**: Gestione di abbonamenti con **posto riservato garantito** (il posto bleibt assegnato all'utente per tutta la durata dell'abbonamento).
-3.  **Monitoraggio in Tempo Reale**: Tracciamento delle sessioni di parcheggio, dei tempi di permanenza e dei pagamenti dovuti.
-4.  **Sicurezza e Isolamento**: Accesso protetto tramite autenticazione basata su sessione, dove ogni utente può gestire solo i propri veicoli e abbonamenti.
+**ParkSync** è una piattaforma enterprise-ready per la gestione automatizzata di parcheggi multipiano. Progettata con un'architettura moderna a microservizi (simulata), offre un'esperienza utente premium e una logica di business robusta per la gestione di abbonamenti, veicoli e accessi automatizzati via QR Code.
 
 ---
 
-## 🚀 Funzionamento del Programma
+## 💎 Caratteristiche Principali
 
-### 1. Autenticazione e Profilo Utente
-Gli utenti possono registrarsi selezionando un tipo di abbonamento iniziale. Il sistema utilizza Spring Security per gestire le sessioni in modo sicuro. Una volta loggati, gli utenti hanno accesso a una dashboard personalizzata.
+### 1. Esperienza Utente & Dashboard
+- **Interfaccia Premium**: Design moderno basato su *Glassmorphism*, animazioni fluide e una UX intuitiva.
+- **Dashboard Unificata**: Visualizzazione immediata dello stato del profilo, inclusi veicoli registrati e abbonamenti attivi in tempo reale.
+- **Gestione Multi-Veicolo**: Possibilità di associare più targhe a un singolo abbonamento.
 
-### 2. Gestione Veicoli
-Nella sezione "I Miei Veicoli", l'utente può registrare le proprie targhe.
--   **Semplificazione**: Non è necessario inserire il modello del veicolo.
--   **Automazione**: La tipologia del veicolo viene ereditata automaticamente dall'abbonamento attivo dell'utente.
--   **Validazione**: Il sistema controlla che le targhe rispettino i formati europei standard e che siano coerenti con il tipo di veicolo (es. formati specifici per le moto).
+### 2. Sistema di Abbonamenti Intelligente
+- **Piani Flessibili**: Supporto per abbonamenti Mensili, Trimestrali e Annuali.
+- **Posto Riservato Esclusivo**: Al momento dell'acquisto, il sistema assegna un posto specifico basato sulla tipologia del veicolo (Auto, Moto, Elettrica, Disabili). Il posto rimane **garantito ed esclusivo** per l'utente per tutta la durata del piano.
+- **Ereditarietà Automatica**: I veicoli aggiunti dall'utente ereditano automaticamente i vantaggi e le tipologie definite dall'abbonamento attivo.
 
-### 3. Abbonamenti e Posti Riservati
-L'applicazione offre piani Mensili, Trimestrali e Annuali.
--   **Acquisto**: Al momento dell'acquisto, il sistema assegna istantaneamente un posto libero corrispondente al tipo di veicolo dell'utente.
--   **Persistenza**: Quel posto è **esclusivo**. Nessun altro utente (standard o abbonato) potrà occuparlo, nemmeno se il veicolo dell'abbonato non è fisicamente nel parcheggio.
--   **QR Code**: Viene generato un codice univoco per l'accesso rapido al gate.
-
-### 4. Simulatore Gate (Ingresso/Uscita)
-Il simulatore permette di testare i flussi di check-in e check-out:
-
-*   **Check-in Standard**: Un utente senza abbonamento inserisce la targa e il tipo di veicolo. Il sistema assegna un posto libero e inizia il conteggio del tempo.
-*   **Check-in Abbonati**: Utilizzando il proprio QR Code e la targa, l'abbonato viene riconosciuto e indirizzato al suo **posto riservato**.
-*   **Check-out**: Il sistema calcola il tempo trascorso, applica la tariffa oraria (gratuito per gli abbonati) e genera una ricevuta.
-*   **Protezione Posti**: Quando un abbonato esce, il suo posto **rimane occupato/riservato** nel sistema, assicurando che sia sempre disponibile al suo ritorno.
+### 3. Logica di Gate Avanzata (Check-in/Out)
+- **Flusso di Pagamento Sicuro**: Separazione tra *Verifica Sessione* e *Conferma Pagamento* per prevenire chiusure accidentali delle soste.
+- **QR Code Dinamici**: Generazione integrata di QR Code per ogni sessione di parcheggio e per gli abbonamenti permanenti.
+- **Validazione Targhe**: Motore di validazione differenziato (Regex) per Auto e Moto per garantire l'integrità dei dati.
+- **Univocità Targhe**: Sistema anti-frode che impedisce l'ingresso a veicoli con targhe già presenti all'interno del parcheggio.
 
 ---
 
 ## 🛠️ Stack Tecnologico
 
--   **Backend**: Java 17 con **Spring Boot 3.x**
-    -   **Spring Security**: Gestione autenticazione e autorizzazioni.
-    -   **Spring Data JPA**: Persistenza dei dati su database relazionale.
-    -   **Lombok**: Riduzione del boilerplate code.
--   **Frontend**: HTML5, CSS3 (Vanilla con design moderno/vetro-morfismo), JavaScript (Vanilla ES6+).
--   **Database**: H2 (Database in-memory per sviluppo rapido) o MySQL/PostgreSQL.
+- **Core Backend**: Java 17, Spring Boot 3.4.x
+- **Sicurezza**: Spring Security con autenticazione basata su Sessione (Cookie-based).
+- **Persistenza**: Spring Data JPA con supporto per transazioni atomiche.
+- **Database**: MySQL 8.0 con sincronizzazione Timezone (Europe/Rome).
+- **Frontend**: Architettura Single Page Application (SPA) in Vanilla JavaScript (ES6+), HTML5 e CSS3 moderno.
+- **Infrastruttura**: Containerizzazione completa con Docker e Docker Compose.
 
 ---
 
-## 📦 Installazione e Avvio
+## 🏗️ Architettura e Infrastruttura
 
-1.  Assicurarsi di avere installato **Java 17** e **Maven**.
-2.  Clonare il repository.
-3.  Eseguire il comando per compilare e avviare:
-    ```bash
-    ./mvnw spring-boot:run
-    ```
-4.  Aprire il browser all'indirizzo: `http://localhost:8080`
+Il progetto è completamente dockerizzato per garantire la portabilità tra ambienti di sviluppo, test e produzione.
+
+### Struttura Docker:
+- **Application Container**: Immagine ottimizzata basata su OpenJDK 17.
+- **Database Container**: MySQL 8.0 pre-configurato.
+- **Management**: phpMyAdmin integrato per il monitoraggio dei dati.
+
+### Sincronizzazione Temporale:
+Tutti i componenti (App, DB, Docker) sono sincronizzati sulla timezone `Europe/Rome` per garantire che i tempi di ingresso/uscita e i calcoli tariffari siano sempre precisi rispetto all'ora locale.
 
 ---
 
-## 🛡️ Controlli di Sicurezza e Validazione
--   **Validazione Targhe**: Regex differenziate per Auto (7-10 caratteri) e Moto (5-7 caratteri).
--   **Protezione Dati**: Ogni utente può visualizzare, modificare o eliminare solo i veicoli associati al proprio account.
--   **Gestione Errori**: Tutte le operazioni critiche (check-in, check-out, acquisto abbonamento) sono gestite tramite transazioni database per garantire la coerenza.
+## 🚀 Guida all'Avvio Rapido
+
+Il modo più semplice per avviare l'intero stack è utilizzare **Docker Compose**:
+
+```bash
+# Avvia tutti i servizi (App, Database, phpMyAdmin)
+docker-compose up --build -d
+```
+
+### Endpoint Utili:
+- **Web App**: [http://localhost:8082](http://localhost:8082)
+- **Amministrazione DB (phpMyAdmin)**: [http://localhost:8081](http://localhost:8081)
+- **API Base URL**: `http://localhost:8082/api`
+
+---
+
+## 📊 Business Logic: Algoritmo Tariffario
+
+Il sistema applica sconti cumulativi e differenziati:
+- **Base**: €3.50/ora (con tariffazione al minuto).
+- **Sconto Elettrico**: -20%
+- **Sconto Moto**: -30%
+- **Sconto Disabilità**: -50% (applicabile a qualsiasi tipo di veicolo).
+- **Abbonati**: Accesso gratuito e illimitato sul posto riservato.
+
+---
+
+## 🛡️ Sicurezza e Integrità
+- **Data Isolation**: Ogni utente può accedere esclusivamente ai propri dati tramite filtri a livello di Repository.
+- **Audit Ready**: Ogni sessione di parcheggio traccia orari di ingresso, uscita e calcoli economici certificati.
+- **Soft Delete**: Gli abbonamenti scaduti vengono spostati in un "Cestino" prima della cancellazione definitiva, permettendo il ripristino o lo storico.
