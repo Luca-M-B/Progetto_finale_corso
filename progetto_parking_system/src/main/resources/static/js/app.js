@@ -365,19 +365,10 @@ async function fetchWithAuth(url, options = {}) {
 // ─── Dashboard Stats ─────────────────────────────────────────────────────────
 async function fetchDashboardStats() {
     try {
-        const [vehiclesRes, reservationsRes] = await Promise.all([
-            fetchWithAuth('/api/vehicles'),
-            fetchWithAuth('/api/reservations').catch(() => null)
-        ]);
-
+        const vehiclesRes = await fetchWithAuth('/api/vehicles');
         const vehicles = await vehiclesRes.json();
-        let reservations = [];
-        if (reservationsRes) {
-            try { reservations = await reservationsRes.json(); } catch (e) {}
-        }
 
         document.getElementById('stat-vehicles').textContent = vehicles.length || 0;
-        document.getElementById('stat-reservations').textContent = reservations.length || 0;
     } catch (e) {
         console.error('Error fetching stats:', e);
     }
