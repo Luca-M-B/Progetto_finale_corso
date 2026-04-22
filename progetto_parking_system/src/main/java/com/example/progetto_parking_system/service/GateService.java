@@ -237,7 +237,7 @@ public class GateService {
         return resp;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public GateResponse handleCheckOut(GateCheckOutRequest request) {
         Optional<ParkingSession> optionalSession = sessionRepository
                 .findByQrCodeAndIsCompletedFalse(request.getQrCode());
@@ -261,60 +261,12 @@ public class GateService {
         }
 
         LocalDateTime exitTime = LocalDateTime.now();
-        session.setExitTime(exitTime);
-
-        // Calcolo costo: minimo 1 minuto, tariffazione al minuto su base €3.50/h
-        long totalMinutes = Duration.between(session.getEntryTime(), exitTime).toMinutes();
-        if (totalMinutes < 1)
-            totalMinutes = 1;
-        double hours = totalMinutes / 60.0;
-        double basePrice = hours * PRICE_PER_HOUR;
-
-        // Sconti MOLTIPLICATIVI (a cascata): ogni sconto si applica sul prezzo già
-        // scontato,
-        // NON si sommano le percentuali. Esempio: disabile con elettrico → base × 0.80
-        // × 0.50
-        double priceMultiplier = 1.0;
-
-        // Sconto per tipo veicolo
-        String vType = session.getVehicleType() != null ? session.getVehicleType().toUpperCase() : "CAR";
-        switch (vType) {
-            case "ELECTRIC":
-                priceMultiplier *= 0.80;
-                break; // -20%
-            case "MOTORBIKE":
-                priceMultiplier *= 0.70;
-                break; // -30%
-            default:
-                break; // nessuno sconto
-        }
-
-        // Sconto disabilità applicato SUL prezzo già scontato dal tipo veicolo
-        if (Boolean.TRUE.equals(session.getHasDisability())) {
-            priceMultiplier *= 0.50; // -50% sul prezzo corrente
-        }
-
-        double calculatedPrice = Math.round(basePrice * priceMultiplier * 100.0) / 100.0;
-
-        session.setCalculatedPrice(calculatedPrice);
-        session.setIsCompleted(true);
-
-        // Libera il posto SOLO SE non è assegnato a un abbonamento attivo
-        Spot spot = session.getSpot();
-        String spotCode = spot != null ? spot.getCode() : "N/A";
-        int floorLevel = (spot != null && spot.getFloor() != null) ? spot.getFloor().getLevel() : 0;
-
-        if (spot != null) {
-            boolean isAssignedToActiveSub = subscriptionRepository.existsByAssignedSpotAndActiveTrueAndDeletedFalse(spot);
-            if (!isAssignedToActiveSub) {
-                spot.setOccupied(false);
-                spotRepository.save(spot);
-            }
-        }
-
-        sessionRepository.save(session);
+        
+        // Calcolo costo (SOLO simulato per il riepilogo, senza modificare l'oggetto session)
+        double calculatedPrice = calculatePrice(session, exitTime);
 
         // Costruisci descrizione sconto per il messaggio
+        String vType = session.getVehicleType() != null ? session.getVehicleType().toUpperCase() : "CAR";
         StringBuilder discountInfo = new StringBuilder();
         if (!vType.equals("CAR")) {
             if (vType.equals("ELECTRIC"))
@@ -326,17 +278,93 @@ public class GateService {
             discountInfo.append(" [-50% disabilità]");
         }
 
+        Spot spot = session.getSpot();
+        String spotCode = spot != null ? spot.getCode() : "N/A";
+        int floorLevel = (spot != null && spot.getFloor() != null) ? spot.getFloor().getLevel() : 0;
+
         GateResponse resp = new GateResponse();
         resp.setSuccess(true);
-        resp.setMessage("Check-out completato. Importo da pagare: €" + String.format("%.2f", calculatedPrice)
+        resp.setMessage("Riepilogo sosta. Importo da pagare: €" + String.format("%.2f", calculatedPrice)
                 + (discountInfo.length() > 0 ? "  " + discountInfo.toString().trim() : ""));
         resp.setAmountDue(calculatedPrice);
+        resp.setQrCode(session.getQrCode());
+        resp.setLicensePlate(session.getLicensePlate());
         resp.setSpotCode(spotCode);
         resp.setFloorLevel(floorLevel);
         resp.setEntryTime(session.getEntryTime());
         resp.setExitTime(exitTime);
         return resp;
     }
+
+
+    @Transactional
+    public GateResponse handlePaymentConfirmation(GateCheckOutRequest request) {
+        Optional<ParkingSession> optionalSession = sessionRepository
+                .findByQrCodeAndIsCompletedFalse(request.getQrCode());
+
+        if (optionalSession.isEmpty()) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Errore: sessione non trovata o già chiusa");
+            return r;
+        }
+
+        ParkingSession session = optionalSession.get();
+        LocalDateTime exitTime = LocalDateTime.now();
+        double finalPrice = calculatePrice(session, exitTime);
+
+        session.setExitTime(exitTime);
+        session.setCalculatedPrice(finalPrice);
+        session.setIsCompleted(true);
+
+        // Libera il posto SOLO SE non è assegnato a un abbonamento attivo
+        Spot spot = session.getSpot();
+        if (spot != null) {
+            boolean isAssignedToActiveSub = subscriptionRepository.existsByAssignedSpotAndActiveTrueAndDeletedFalse(spot);
+            if (!isAssignedToActiveSub) {
+                spot.setOccupied(false);
+                spotRepository.save(spot);
+            }
+        }
+
+        sessionRepository.save(session);
+
+        GateResponse resp = new GateResponse();
+        resp.setSuccess(true);
+        resp.setMessage("Pagamento confermato! Arrivederci.");
+        resp.setAmountDue(finalPrice);
+        resp.setExitTime(exitTime);
+        return resp;
+    }
+
+    private double calculatePrice(ParkingSession session, LocalDateTime exitTime) {
+        long totalMinutes = Duration.between(session.getEntryTime(), exitTime).toMinutes();
+        if (totalMinutes < 1)
+            totalMinutes = 1;
+        double hours = totalMinutes / 60.0;
+        double basePrice = hours * PRICE_PER_HOUR;
+
+        double priceMultiplier = 1.0;
+        String vType = session.getVehicleType() != null ? session.getVehicleType().toUpperCase() : "CAR";
+        
+        switch (vType) {
+            case "ELECTRIC":
+                priceMultiplier *= 0.80;
+                break;
+            case "MOTORBIKE":
+                priceMultiplier *= 0.70;
+                break;
+            default:
+                break;
+        }
+
+        if (Boolean.TRUE.equals(session.getHasDisability())) {
+            priceMultiplier *= 0.50;
+        }
+
+        return Math.round(basePrice * priceMultiplier * 100.0) / 100.0;
+    }
+
 
     /**
      * SOLO PER TEST: libera tutti i posti occupati e chiude tutte le sessioni

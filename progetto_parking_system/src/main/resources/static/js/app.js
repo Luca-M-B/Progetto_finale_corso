@@ -990,12 +990,41 @@ function applySubscriptionUI() {
 
 async function handlePayAndLeave() {
     if (!activeCheckoutData) return;
-    const amount = activeCheckoutData.amountDue ?? 0;
-    showToast(`Pagamento di €${amount.toFixed(2)} confermato. Buona giornata!`, 'success');
-    setTimeout(() => {
-        alert(`✅ Pagamento confermato!\n\nImporto: €${amount.toFixed(2)}\nSbarra aperta — Arrivederci!`);
-        resetCheckOutFlow();
-    }, 500);
+    
+    const btn = document.querySelector('#pay-ticket-step .btn-primary');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Elaborazione...';
+    btn.disabled = true;
+
+    try {
+        const payload = {
+            qrCode: activeCheckoutData.qrCode,
+            licensePlate: activeCheckoutData.licensePlate
+        };
+
+        const res = await fetch(`${API_BASE}/api/gate/confirm-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            showToast(`Pagamento confermato. Buona giornata!`, 'success');
+            setTimeout(() => {
+                alert(`✅ Pagamento confermato!\n\nImporto: €${activeCheckoutData.amountDue.toFixed(2)}\nSbarra aperta — Arrivederci!`);
+                resetCheckOutFlow();
+            }, 500);
+        } else {
+            showToast(data.message || 'Errore durante la conferma del pagamento', 'error');
+        }
+    } catch (err) {
+        showToast(err.message, 'error');
+    } finally {
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    }
 }
 
 // ─── UI Utilities ─────────────────────────────────────────────────────────────

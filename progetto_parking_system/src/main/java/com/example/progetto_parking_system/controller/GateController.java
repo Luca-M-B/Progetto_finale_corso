@@ -54,9 +54,8 @@ public class GateController {
     }
 
     /**
-     * Check-out: inserisce targa e QR code.
-     * Se validi, segna l'orario di uscita, calcola il costo (€3.50/h),
-     * libera il posto e restituisce il riepilogo per il pagamento.
+     * Step 1: Check-out (Verifica): inserisce targa e QR code.
+     * Restituisce il calcolo del costo senza chiudere la sessione.
      */
     @PostMapping("/check-out")
     public ResponseEntity<GateResponse> checkOut(@RequestBody GateCheckOutRequest request) {
@@ -67,6 +66,20 @@ public class GateController {
             return ResponseEntity.badRequest().body(response);
         }
     }
+
+    /**
+     * Step 2: Conferma Pagamento: effettua il pagamento e libera il posto.
+     */
+    @PostMapping("/confirm-payment")
+    public ResponseEntity<GateResponse> confirmPayment(@RequestBody GateCheckOutRequest request) {
+        GateResponse response = gateService.handlePaymentConfirmation(request);
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
 
     /**
      * Restituisce l'immagine PNG del QR code di una sessione di check-in attiva.

@@ -12,6 +12,8 @@ public class GateResponse {
     private boolean success;
     private String message;
     private String qrCode;
+    private String licensePlate;
+
     private Double amountDue;
     private String spotCode;
     private Integer floorLevel;
