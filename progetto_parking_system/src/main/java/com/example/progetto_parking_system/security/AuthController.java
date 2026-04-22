@@ -51,14 +51,22 @@ public class AuthController {
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
 
-        boolean hasActive = subscriptionService.getMySubscriptions(userDetails.getUsername()).stream()
-                .anyMatch(s -> Boolean.TRUE.equals(s.getActive()));
+        boolean hasActive = false;
+        String activeVehicleType = "CAR";
+        for (var s : subscriptionService.getMySubscriptions(userDetails.getUsername())) {
+            if (Boolean.TRUE.equals(s.getActive())) {
+                hasActive = true;
+                activeVehicleType = s.getVehicleType() != null ? s.getVehicleType() : "CAR";
+                break;
+            }
+        }
 
         // Non usiamo più JWT, restituiamo solo successo, username e stato abbonamento
         return ResponseEntity.ok(Map.of(
                 "message", "Login effettuato",
                 "username", userDetails.getUsername(),
-                "hasActiveSubscription", hasActive));
+                "hasActiveSubscription", hasActive,
+                "activeSubscriptionVehicleType", activeVehicleType));
     }
 
     @PostMapping("/refresh")

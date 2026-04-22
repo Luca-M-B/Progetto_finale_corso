@@ -119,6 +119,7 @@ async function handleLogin(e) {
         appState.username = data.username;
         appState.role = data.role || 'USER';
         appState.hasActiveSubscription = !!data.hasActiveSubscription;
+        appState.activeSubscriptionVehicleType = data.activeSubscriptionVehicleType || 'CAR';
         
         const remember = document.getElementById('login-remember').checked;
         storage.set('isLoggedIn', 'true', remember);
@@ -192,6 +193,7 @@ async function logout() {
     appState.username = null;
     appState.role = null;
     appState.hasActiveSubscription = false;
+    appState.activeSubscriptionVehicleType = null;
     
     storage.clear('isLoggedIn');
     storage.clear('username');
