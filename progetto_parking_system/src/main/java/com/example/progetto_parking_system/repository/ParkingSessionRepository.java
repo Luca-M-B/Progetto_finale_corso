@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface ParkingSessionRepository extends JpaRepository<ParkingSession, Long> {
     Optional<ParkingSession> findByQrCodeAndIsCompletedFalse(String qrCode);
     java.util.List<ParkingSession> findAllByIsCompletedFalse();
+    boolean existsByLicensePlateAndIsCompletedFalse(String licensePlate);
 }

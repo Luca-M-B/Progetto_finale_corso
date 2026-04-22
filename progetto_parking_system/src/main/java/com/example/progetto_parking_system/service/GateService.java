@@ -54,6 +54,14 @@ public class GateService {
         Subscription sub = subOpt.get();
         String plate = licensePlate != null ? licensePlate.toUpperCase().replace(" ", "").replace("-", "") : "";
 
+        // Verificata se il veicolo è già nel parcheggio
+        if (sessionRepository.existsByLicensePlateAndIsCompletedFalse(plate)) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Il veicolo con targa " + plate + " risulta già all'interno del parcheggio");
+            return r;
+        }
+
         // Determiniamo il tipo previsto (dall'abbonamento)
         String vType = sub.getVehicleType() != null ? sub.getVehicleType().name() : "CAR";
 
@@ -155,6 +163,14 @@ public class GateService {
                 ? request.getLicensePlate().toUpperCase().replace(" ", "").replace("-", "")
                 : "";
         String vType = request.getVehicleType() != null ? request.getVehicleType().toUpperCase() : "CAR";
+
+        // Verificata se il veicolo è già nel parcheggio
+        if (sessionRepository.existsByLicensePlateAndIsCompletedFalse(plate)) {
+            GateResponse r = new GateResponse();
+            r.setSuccess(false);
+            r.setMessage("Il veicolo con targa " + plate + " risulta già all'interno del parcheggio");
+            return r;
+        }
 
         // Validazione Targa differenziata
         boolean isValid;
