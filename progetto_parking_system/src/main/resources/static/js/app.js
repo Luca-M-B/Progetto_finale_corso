@@ -697,10 +697,14 @@ function openSubDetailModal(sub) {
     document.getElementById('sub-validity').textContent =
         `Valido: ${fmtDate(sub.startDate)} → ${fmtDate(sub.endDate)}`;
 
-    const veicoli = sub.vehicles && sub.vehicles.length
-        ? sub.vehicles.map(v => v.targa || v).join(', ')
-        : 'Nessun veicolo associato';
-    document.getElementById('sub-vehicles-display').textContent = `Veicoli: ${veicoli}`;
+    const veicoliDisplay = document.getElementById('sub-vehicles-display');
+    if (sub.vehicles && sub.vehicles.length) {
+        veicoliDisplay.textContent = `Veicoli: ${sub.vehicles.map(v => v.targa || v).join(', ')}`;
+        veicoliDisplay.style.display = 'block';
+    } else {
+        veicoliDisplay.textContent = '';
+        veicoliDisplay.style.display = 'none';
+    }
 }
 
 function closeSubDetailModal() {
