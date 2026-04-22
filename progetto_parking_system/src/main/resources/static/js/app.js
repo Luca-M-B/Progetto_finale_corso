@@ -233,7 +233,7 @@ function loadSection(section) {
     }
 
     // Nascondi tutte le sezioni
-    ['vehicles-section', 'subscriptions-section', 'reservations-section', 'parkings-section'].forEach(id => {
+    ['vehicles-section', 'subscriptions-section', 'reservations-section', 'parkings-section', 'dashboard-summary-section'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -242,6 +242,8 @@ function loadSection(section) {
         case 'dashboard':
             pageTitle.textContent = 'Dashboard Overview';
             if (statsEl) statsEl.classList.remove('hidden');
+            const summarySec = document.getElementById('dashboard-summary-section');
+            if (summarySec) summarySec.classList.remove('hidden');
             fetchDashboardStats();
             break;
 
@@ -367,10 +369,62 @@ async function fetchDashboardStats() {
     try {
         const vehiclesRes = await fetchWithAuth('/api/vehicles');
         const vehicles = await vehiclesRes.json();
-
         document.getElementById('stat-vehicles').textContent = vehicles.length || 0;
+
+        // Recupera e mostra abbonamenti attivi in dashboard
+        fetchDashboardSubscriptions();
     } catch (e) {
         console.error('Error fetching stats:', e);
+    }
+}
+
+async function fetchDashboardSubscriptions() {
+    const grid = document.getElementById('dashboard-subscriptions-grid');
+    if (!grid) return;
+
+    try {
+        const res = await fetchWithAuth('/api/subscriptions');
+        const subs = await res.json();
+        const activeSubs = subs.filter(s => s.active !== false && new Date(s.endDate) > new Date());
+
+        if (activeSubs.length === 0) {
+            grid.innerHTML = '<p style="color:var(--text-muted); padding:1rem; grid-column:1/-1; text-align:center;">Nessun abbonamento attivo.</p>';
+            return;
+        }
+
+        const typeLabel = { MONTHLY: 'Mensile', QUARTERLY: 'Trimestrale', YEARLY: 'Annuale' };
+        const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
+
+        grid.innerHTML = activeSubs.map(s => `
+            <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;position:relative;overflow:hidden;">
+                <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+                    <div class="stat-icon purple" style="width:40px;height:40px;font-size:1.2rem;">
+                        <i class="fa-solid fa-id-card"></i>
+                    </div>
+                    <span style="background:rgba(72,219,152,0.2);color:#48db98;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">ATTIVO</span>
+                </div>
+                <h3 style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">
+                    ${typeLabel[s.type] || s.type || 'Abbonamento'}
+                </h3>
+                <div style="width:100%;background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:5px 0;">
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
+                        <i class="fa-regular fa-calendar"></i> Scadenza: <strong>${fmtDate(s.endDate)}</strong>
+                    </p>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
+                        <i class="fa-solid fa-car-side"></i> Veicolo: <strong>${s.vehicleType || 'N/A'}</strong>
+                    </p>
+                    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
+                        <i class="fa-solid fa-map-pin"></i> Posto: <strong style="color:#63b3ed;">${s.spotCode || 'Assegnazione...'}</strong>
+                    </p>
+                </div>
+                ${s.vehiclePlates && s.vehiclePlates.length ? `
+                    <p style="font-size:0.8rem;color:#63b3ed;margin-top:5px;">
+                        <i class="fa-solid fa-car"></i> Veicoli: ${s.vehiclePlates.join(', ')}
+                    </p>` : ''}
+            </div>
+        `).join('');
+    } catch (e) {
+        grid.innerHTML = '<p style="color:var(--danger); padding:1rem;">Errore nel caricamento degli abbonamenti.</p>';
     }
 }
 

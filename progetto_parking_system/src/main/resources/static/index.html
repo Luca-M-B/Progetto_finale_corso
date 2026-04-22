@@ -180,10 +180,6 @@
         <main class="main-content">
             <header class="top-nav">
                 <h2 id="page-title">Dashboard Overview</h2>
-                <div class="header-actions">
-                    <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
-                    <button class="icon-btn" onclick="fetchData()"><i class="fa-solid fa-rotate-right"></i></button>
-                </div>
             </header>
 
             <div class="content-area" id="main-content-area">
@@ -194,6 +190,18 @@
                         <div class="stat-details">
                             <h3>Veicoli Registrati</h3>
                             <p id="stat-vehicles">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sezione riepilogo in Dashboard -->
+                <div id="dashboard-summary-section" class="mt-4">
+                    <div class="data-section">
+                        <div class="section-header">
+                            <h3><i class="fa-solid fa-id-card" style="margin-right:6px;"></i>I Miei Abbonamenti Attivi</h3>
+                        </div>
+                        <div class="grid-container" id="dashboard-subscriptions-grid">
+                            <p style="color:var(--text-muted); padding:1rem;">Nessun abbonamento attivo.</p>
                         </div>
                     </div>
                 </div>

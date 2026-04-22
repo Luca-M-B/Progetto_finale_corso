@@ -1,8 +1,5 @@
 package com.example.progetto_parking_system.security;
 
-import java.util.UUID;
-import java.time.LocalDate;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -95,7 +92,8 @@ public class AuthController {
             SubscriptionPurchaseRequest subRequest = new SubscriptionPurchaseRequest();
             subRequest.setType(request.getSubscriptionType());
             subRequest.setVehicleType(request.getVehicleType()); // Passa il tipo veicolo scelto
-            // Il purchase assegnerà automaticamente QR code, date, stato attivo e POSTO RISERVATO
+            // Il purchase assegnerà automaticamente QR code, date, stato attivo e POSTO
+            // RISERVATO
             subscriptionService.purchase(newUser.getUsername(), subRequest);
         }
 
