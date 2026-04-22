@@ -1,0 +1,15 @@
+target/
+*.class
+*.jar
+*.exe
+*.dll
+*.so
+*.dylib
+.mvn/
+mvnw
+mvnw.cmd
+.git/
+.gitignore
+.idea/
+.vscode/
+*.log
