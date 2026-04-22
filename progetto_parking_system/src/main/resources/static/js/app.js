@@ -1,10 +1,23 @@
 const API_BASE = 'http://localhost:8082';
 
+// Storage Helper
+const storage = {
+    get: (key) => localStorage.getItem(key) || sessionStorage.getItem(key),
+    set: (key, value, remember) => {
+        if (remember) localStorage.setItem(key, value);
+        else sessionStorage.setItem(key, value);
+    },
+    clear: (key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+    }
+};
+
 // App State
 let appState = {
-    isLoggedIn: localStorage.getItem('isLoggedIn') === 'true',
-    username: localStorage.getItem('username') || null,
-    role: localStorage.getItem('role') || null,
+    isLoggedIn: storage.get('isLoggedIn') === 'true',
+    username: storage.get('username') || null,
+    role: storage.get('role') || null,
     hasActiveSubscription: false,
     activeSubscriptionVehicleType: null, // Tipo veicolo dell'abbonamento attivo
     currentView: 'auth'
@@ -31,9 +44,21 @@ const views = {
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+    restoreSavedCredentials();
     checkAuthState();
     setupEventListeners();
 });
+
+function restoreSavedCredentials() {
+    if (localStorage.getItem('rememberMe') === 'true') {
+        const userIn = document.getElementById('login-username');
+        const passIn = document.getElementById('login-password');
+        const rememberCheck = document.getElementById('login-remember');
+        if (userIn) userIn.value = localStorage.getItem('savedUsername') || '';
+        if (passIn) passIn.value = localStorage.getItem('savedPassword') || '';
+        if (rememberCheck) rememberCheck.checked = true;
+    }
+}
 
 function setupEventListeners() {
     document.getElementById('login-form').addEventListener('submit', handleLogin);
@@ -95,9 +120,20 @@ async function handleLogin(e) {
         appState.role = data.role || 'USER';
         appState.hasActiveSubscription = !!data.hasActiveSubscription;
         
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('role', appState.role);
+        const remember = document.getElementById('login-remember').checked;
+        storage.set('isLoggedIn', 'true', remember);
+        storage.set('username', data.username, remember);
+        storage.set('role', appState.role, remember);
+
+        if (remember) {
+            localStorage.setItem('savedUsername', document.getElementById('login-username').value);
+            localStorage.setItem('savedPassword', document.getElementById('login-password').value);
+            localStorage.setItem('rememberMe', 'true');
+        } else {
+            localStorage.removeItem('savedUsername');
+            localStorage.removeItem('savedPassword');
+            localStorage.removeItem('rememberMe');
+        }
 
         document.getElementById('display-username').textContent = data.username;
         applySubscriptionUI();
@@ -157,9 +193,24 @@ async function logout() {
     appState.role = null;
     appState.hasActiveSubscription = false;
     
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('username');
-    localStorage.removeItem('role');
+    storage.clear('isLoggedIn');
+    storage.clear('username');
+    storage.clear('role');
+
+    // Se "Ricordami" non è attivo, pulisci i campi. Altrimenti, caricali.
+    const remember = localStorage.getItem('rememberMe') === 'true';
+    const userIn = document.getElementById('login-username');
+    const passIn = document.getElementById('login-password');
+    const rememberCheck = document.getElementById('login-remember');
+
+    if (!remember) {
+        if (userIn) userIn.value = '';
+        if (passIn) passIn.value = '';
+        if (rememberCheck) rememberCheck.checked = false;
+    } else {
+        restoreSavedCredentials();
+    }
+
     checkAuthState();
 }
 

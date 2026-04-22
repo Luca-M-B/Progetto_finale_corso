@@ -31,7 +31,7 @@
             </div>
 
             <!-- Login Form -->
-            <form id="login-form" class="auth-form active">
+            <form id="login-form" class="auth-form active" autocomplete="off">
                 <div class="input-group">
                     <label for="login-username"><i class="fa-solid fa-user"></i> Username</label>
                     <input type="text" id="login-username" required placeholder="Inserisci username">
@@ -39,6 +39,10 @@
                 <div class="input-group">
                     <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
                     <input type="password" id="login-password" required placeholder="Inserisci password">
+                </div>
+                <div class="input-group" style="flex-direction:row; align-items:center; gap:8px;">
+                    <input type="checkbox" id="login-remember" style="width:auto; margin:0;">
+                    <label for="login-remember" style="margin:0;">Ricordami</label>
                 </div>
                 <button type="submit" class="btn-primary">Accedi <i class="fa-solid fa-arrow-right"></i></button>
             </form>
