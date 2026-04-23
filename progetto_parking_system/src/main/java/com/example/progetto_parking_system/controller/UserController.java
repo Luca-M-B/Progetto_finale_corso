@@ -9,18 +9,28 @@ import com.example.progetto_parking_system.service.UserService;
 
 import java.util.List;
 
+/**
+ * Controller per la gestione delle anagrafiche utenti.
+ * Gestisce le operazioni di registrazione e amministrazione degli account.
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
     @Autowired
-    private UserService service;
+    private UserService service; // Servizio per la logica di business relativa agli utenti
 
+    /**
+     * Ritorna l'elenco di tutti gli utenti registrati (riservato agli amministratori).
+     */
     @GetMapping
     public List<User> getAll() {
         return service.findAll();
     }
 
+    /**
+     * Recupera i dettagli di un utente specifico tramite il suo ID.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<User> getById(@PathVariable Long id) {
         return service.findById(id)
@@ -28,11 +38,17 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Registra un nuovo utente nel sistema.
+     */
     @PostMapping
     public User create(@RequestBody User entity) {
         return service.save(entity);
     }
 
+    /**
+     * Aggiorna le informazioni di un utente esistente.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<User> update(@PathVariable Long id, @RequestBody User entity) {
         return service.findById(id)
@@ -43,6 +59,9 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Elimina un account utente dal sistema.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (service.findById(id).isPresent()) {
@@ -51,5 +70,4 @@ public class UserController {
         }
         return ResponseEntity.notFound().build();
     }
-
 }

@@ -22,13 +22,18 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Servizio per la gestione degli abbonamenti.
+ * Si occupa della logica di acquisto, calcolo dei prezzi, assegnazione del posto auto
+ * e verifica della validità dei QR code per l'accesso al parcheggio.
+ */
 @Service
 public class SubscriptionService {
 
-    // Prezzi abbonamenti
-    private static final double PRICE_MONTHLY   = 49.90;
-    private static final double PRICE_QUARTERLY = 129.90;
-    private static final double PRICE_YEARLY    = 449.90;
+    // Listino prezzi statico per gli abbonamenti
+    private static final double PRICE_MONTHLY   = 49.90;   // Prezzo mensile
+    private static final double PRICE_QUARTERLY = 129.90;  // Prezzo trimestrale
+    private static final double PRICE_YEARLY    = 449.90;  // Prezzo annuale
 
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
@@ -46,38 +51,43 @@ public class SubscriptionService {
     }
 
     /**
-     * Acquista un nuovo abbonamento per l'utente autenticato.
-     * Genera QR code univoco e associa i veicoli scelti.
+     * Gestisce l'acquisto di un nuovo abbonamento per un utente.
+     * Se l'utente ha già un abbonamento attivo, il nuovo abbonamento inizierà alla scadenza del precedente.
+     * Assegna inoltre un posto auto fisso riservato per tutta la durata dell'abbonamento.
+     * 
+     * @param username Nome utente di chi effettua l'acquisto
+     * @param request Dettagli della richiesta (tipo abbonamento, tipo veicolo, veicoli associati)
+     * @return Risposta con i dettagli dell'abbonamento creato
      */
     @Transactional
     public SubscriptionResponse purchase(String username, SubscriptionPurchaseRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
+        // Validazione tipo abbonamento
         SubscriptionType type;
         try {
             type = SubscriptionType.valueOf(request.getType().toUpperCase());
         } catch (Exception e) {
-            throw new RuntimeException("Tipo abbonamento non valido. Valori: MONTHLY, QUARTERLY, YEARLY");
+            throw new RuntimeException("Tipo abbonamento non valido. Valori ammessi: MONTHLY, QUARTERLY, YEARLY");
         }
 
         LocalDate start = LocalDate.now();
         
-        // Cerca se esiste già un abbonamento attivo per estenderlo
+        // Verifica se esiste già un abbonamento attivo per accodare il nuovo acquisto (estensione della validità)
         List<Subscription> activeSubs = subscriptionRepository.findByUserUsernameAndActiveTrueAndDeletedFalse(username);
         if (!activeSubs.isEmpty()) {
-            // Se ne ha più di uno (raro ma possibile), prendiamo quello che scade più tardi
             LocalDate furthestEnd = activeSubs.stream()
                 .map(Subscription::getEndDate)
                 .max(LocalDate::compareTo)
                 .orElse(start);
             
-            // Se l'abbonamento attivo scade nel futuro, partiamo da lì
             if (furthestEnd.isAfter(start)) {
-                start = furthestEnd;
+                start = furthestEnd; // La data di inizio sarà il giorno dopo la fine del precedente
             }
         }
 
+        // Calcolo data di fine e prezzo
         LocalDate end;
         double price;
         switch (type) {
@@ -86,25 +96,25 @@ public class SubscriptionService {
             default:        end = start.plusMonths(1);  price = PRICE_MONTHLY;   break;
         }
 
-        // --- Gestione Posto Assegnato ---
+        // Gestione del tipo di posto richiesto (es. auto, moto, disabili)
         SpotType vType;
         try {
             vType = request.getVehicleType() != null 
                 ? SpotType.valueOf(request.getVehicleType().toUpperCase()) 
                 : SpotType.CAR;
         } catch (Exception e) {
-            throw new RuntimeException("Tipo veicolo non valido. Valori: CAR, MOTORBIKE, ELECTRIC, HANDICAPPED");
+            throw new RuntimeException("Tipo veicolo non valido. Valori ammessi: CAR, MOTORBIKE, ELECTRIC, HANDICAPPED");
         }
 
-        // Cerca un posto libero del tipo richiesto
+        // Ricerca e assegnazione di un posto libero del tipo corrispondente
         Spot spot = spotRepository.findFirstByTypeAndOccupiedFalse(vType)
-            .orElseThrow(() -> new RuntimeException("Nessun posto disponibile per il tipo " + vType));
+            .orElseThrow(() -> new RuntimeException("Spiacenti, nessun posto disponibile per il tipo " + vType));
         
-        // Occupa il posto (verrà tenuto per tutta la durata dell'abbonamento)
+        // Segna il posto come occupato (riservato per l'abbonato)
         spot.setOccupied(true);
         spotRepository.save(spot);
 
-        // Recupera i veicoli richiesti che appartengono all'utente
+        // Associa i veicoli dell'utente all'abbonamento (possono essere più di uno, es. famiglia)
         List<Vehicle> vehicles = new ArrayList<>();
         if (request.getVehicleIds() != null && !request.getVehicleIds().isEmpty()) {
             for (Long vid : request.getVehicleIds()) {
@@ -116,6 +126,7 @@ public class SubscriptionService {
             }
         }
 
+        // Creazione dell'oggetto abbonamento
         Subscription sub = new Subscription();
         sub.setUser(user);
         sub.setType(type);
@@ -125,7 +136,7 @@ public class SubscriptionService {
         sub.setEndDate(end);
         sub.setActive(true);
         sub.setPricePaid(price);
-        sub.setQrCode(UUID.randomUUID().toString());
+        sub.setQrCode(UUID.randomUUID().toString()); // Generazione token univoco per il QR
         sub.setVehicles(vehicles);
 
         subscriptionRepository.save(sub);
@@ -133,7 +144,7 @@ public class SubscriptionService {
     }
 
     /**
-     * Elenco di tutti gli abbonamenti dell'utente (attivi e scaduti).
+     * Ritorna la lista di tutti gli abbonamenti non cancellati dell'utente.
      */
     public List<SubscriptionResponse> getMySubscriptions(String username) {
         return subscriptionRepository.findByUserUsernameAndDeletedFalse(username)
@@ -143,7 +154,7 @@ public class SubscriptionService {
     }
 
     /**
-     * Elenco degli abbonamenti cancellati (nel cestino).
+     * Ritorna la lista degli abbonamenti presenti nel cestino (soft-deleted).
      */
     public List<SubscriptionResponse> getDeletedSubscriptions(String username) {
         return subscriptionRepository.findByUserUsernameAndDeletedTrue(username)
@@ -153,8 +164,11 @@ public class SubscriptionService {
     }
 
     /**
-     * Verifica QR code abbonamento: valido se attivo e data odierna compresa.
-     * Restituisce i dettagli se valido, errore altrimenti.
+     * Verifica se un QR code corrisponde a un abbonamento valido e attivo oggi.
+     * Se l'abbonamento risulta scaduto temporalmente, viene disattivato e il posto auto liberato.
+     * 
+     * @param qrCode Il codice univoco dell'abbonamento
+     * @return Dettagli dell'abbonamento validato o messaggio di errore
      */
     public SubscriptionResponse verifyQrCode(String qrCode) {
         Optional<Subscription> opt = subscriptionRepository.findByQrCodeAndActiveTrueAndDeletedFalse(qrCode);
@@ -164,13 +178,15 @@ public class SubscriptionService {
             return r;
         }
         Subscription sub = opt.get();
+        
+        // Verifica se la data odierna ha superato la data di scadenza
         if (LocalDate.now().isAfter(sub.getEndDate())) {
-            sub.setActive(false);
+            sub.setActive(false); // Disattiva l'abbonamento
             if (sub.getAssignedSpot() != null) {
                 Spot spot = sub.getAssignedSpot();
-                spot.setOccupied(false);
+                spot.setOccupied(false); // Libera il posto auto riservato
                 spotRepository.save(spot);
-                sub.setAssignedSpot(null); // Rimuovi assegnazione se scaduto
+                sub.setAssignedSpot(null); 
             }
             subscriptionRepository.save(sub);
             SubscriptionResponse r = new SubscriptionResponse();
@@ -180,15 +196,16 @@ public class SubscriptionService {
         return toResponse(sub, "Abbonamento valido");
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
-
+    /**
+     * Helper per convertire l'entità Subscription nel DTO SubscriptionResponse per il frontend.
+     */
     private SubscriptionResponse toResponse(Subscription s, String message) {
         List<String> plates = s.getVehicles() == null ? List.of() :
                 s.getVehicles().stream()
                         .map(v -> v.getTarga() != null ? v.getTarga() : "—")
                         .collect(Collectors.toList());
 
-        // Controlla e aggiorna automaticamente lo stato attivo
+        // Verifica aggiornata dello stato attivo basata sia sulla flag che sulla data
         boolean active = Boolean.TRUE.equals(s.getActive())
                 && !LocalDate.now().isAfter(s.getEndDate());
 
@@ -207,16 +224,11 @@ public class SubscriptionService {
         );
     }
 
-    // metodi base usati da altri controller
     public Optional<Subscription> findById(Long id) { return subscriptionRepository.findById(id); }
     public void deleteById(Long id) { subscriptionRepository.deleteById(id); }
 
     /**
-     * Verifica se il QR di un abbonamento è ancora valido (attivo e non scaduto).
-     * Usato dal SubscriptionController per decidere se generare l'immagine QR.
-     *
-     * @param qrCode il QR code dell'abbonamento
-     * @return true se l'abbonamento è attivo e non scaduto
+     * Controlla se l'abbonamento associato al QR code è attualmente attivo e non scaduto.
      */
     public boolean isSubscriptionQrActive(String qrCode) {
         return subscriptionRepository.findByQrCodeAndActiveTrueAndDeletedFalse(qrCode)
@@ -225,8 +237,11 @@ public class SubscriptionService {
     }
 
     /**
-     * Sposta un abbonamento nel cestino (soft delete).
-     * Solo gli abbonamenti scaduti possono essere spostati nel cestino.
+     * Sposta un abbonamento nel cestino.
+     * Per motivi di sicurezza, è possibile eliminare solo abbonamenti già scaduti o disattivati.
+     * 
+     * @param id ID dell'abbonamento
+     * @param username Nome utente del proprietario (per controllo permessi)
      */
     @Transactional
     public void softDelete(Long id, String username) {
@@ -237,10 +252,10 @@ public class SubscriptionService {
             throw new RuntimeException("Non hai i permessi per eliminare questo abbonamento");
         }
 
-        // Verifica se è scaduto (oggi o nel passato)
+        // Verifica se è effettivamente scaduto
         boolean isExpired = !LocalDate.now().isBefore(sub.getEndDate()) || Boolean.FALSE.equals(sub.getActive());
         if (!isExpired) {
-            throw new RuntimeException("Puoi eliminare solo gli abbonamenti scaduti (scadenza: " + sub.getEndDate() + ")");
+            throw new RuntimeException("Non puoi eliminare un abbonamento ancora in corso. Scadenza prevista: " + sub.getEndDate());
         }
 
         sub.setDeleted(true);
@@ -248,7 +263,7 @@ public class SubscriptionService {
     }
 
     /**
-     * Ripristina un abbonamento dal cestino.
+     * Ripristina un abbonamento dal cestino riportandolo nella lista principale.
      */
     @Transactional
     public void restore(Long id, String username) {
@@ -256,7 +271,7 @@ public class SubscriptionService {
                 .orElseThrow(() -> new RuntimeException("Abbonamento non trovato"));
         
         if (!sub.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Non hai i permessi per ripristinare questo abbonamento");
+            throw new RuntimeException("Operazione non consentita: l'abbonamento non ti appartiene");
         }
 
         sub.setDeleted(false);
