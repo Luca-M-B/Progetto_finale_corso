@@ -27,7 +27,8 @@
             <div class="auth-tabs">
                 <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
                 <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Registrati</button>
-                <button id="tab-gate" class="tab-btn" onclick="switchAuthTab('gate')">Gate Access</button>
+                <button id="tab-gate-checkin" class="tab-btn" onclick="switchAuthTab('gate-checkin')">Check In</button>
+                <button id="tab-gate-checkout" class="tab-btn" onclick="switchAuthTab('gate-checkout')">Check Out</button>
             </div>
 
             <!-- Login Form -->
@@ -80,8 +81,8 @@
                         class="fa-solid fa-user-plus"></i></button>
             </form>
 
-            <!-- Gate Form -->
-            <div id="gate-form" class="auth-form" style="max-height: 400px; overflow-y: auto;">
+            <!-- Gate Check-In Form -->
+            <div id="gate-checkin-form" class="auth-form" style="max-height: 400px; overflow-y: auto;">
                 <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;">Accesso
                     occasionale (Senza Abbonamento)</p>
                 <div id="gate-checkin-section">
@@ -105,9 +106,13 @@
                     <button type="button" onclick="handleGateCheckIn()" class="btn-primary"
                         style="margin-top:1rem;">Check-In <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
                 </div>
+            </div>
 
-                <div id="gate-checkout-section"
-                    style="margin-top:2rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
+            <!-- Gate Check-Out Form -->
+            <div id="gate-checkout-form" class="auth-form" style="max-height: 400px; overflow-y: auto;">
+                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;">Accesso
+                    occasionale (Senza Abbonamento)</p>
+                <div id="gate-checkout-section">
                     <h4 style="margin-bottom: 10px; text-align: center;">Fai il Check-Out</h4>
 
                     <div id="scan-ticket-step">
