@@ -9,18 +9,27 @@ import com.example.progetto_parking_system.service.ExtraServiceService;
 
 import java.util.List;
 
+/**
+ * Controller per la gestione dei servizi extra (es. lavaggio auto, ricarica elettrica).
+ */
 @RestController
 @RequestMapping("/api/extra-services")
 public class ExtraServiceController {
 
     @Autowired
-    private ExtraServiceService service;
+    private ExtraServiceService service; // Servizio per la gestione dei servizi extra
 
+    /**
+     * Elenco di tutti i servizi extra disponibili nel parcheggio.
+     */
     @GetMapping
     public List<ExtraService> getAll() {
         return service.findAll();
     }
 
+    /**
+     * Recupera un servizio extra tramite ID.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<ExtraService> getById(@PathVariable Long id) {
         return service.findById(id)
@@ -28,11 +37,17 @@ public class ExtraServiceController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Registra un nuovo servizio extra.
+     */
     @PostMapping
     public ExtraService create(@RequestBody ExtraService entity) {
         return service.save(entity);
     }
 
+    /**
+     * Aggiorna i dati di un servizio extra.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<ExtraService> update(@PathVariable Long id, @RequestBody ExtraService entity) {
         return service.findById(id)
@@ -43,6 +58,9 @@ public class ExtraServiceController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Elimina un servizio extra dal sistema.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (service.findById(id).isPresent()) {

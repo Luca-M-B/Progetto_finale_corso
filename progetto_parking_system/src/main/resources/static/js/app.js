@@ -1,6 +1,14 @@
-const API_BASE = 'http://localhost:8082';
+/**
+ * Configurazione e logica client-side per l'applicazione Parking System.
+ * Gestisce l'autenticazione, la visualizzazione dei dati e le interazioni con le API.
+ */
 
-// Storage Helper
+const API_BASE = 'http://localhost:8082'; // URL base per le chiamate API al backend
+
+/**
+ * Helper per la gestione del LocalStorage e SessionStorage.
+ * Permette di salvare i dati di sessione (es. username, stato login).
+ */
 const storage = {
     get: (key) => localStorage.getItem(key) || sessionStorage.getItem(key),
     set: (key, value, remember) => {
@@ -13,27 +21,29 @@ const storage = {
     }
 };
 
-// App State
+/**
+ * Stato globale dell'applicazione.
+ * Contiene informazioni sull'utente autenticato e sulla vista corrente.
+ */
 let appState = {
     isLoggedIn: storage.get('isLoggedIn') === 'true',
     username: storage.get('username') || null,
     role: storage.get('role') || null,
     hasActiveSubscription: false,
-    activeSubscriptionVehicleType: null, // Tipo veicolo dell'abbonamento attivo
+    activeSubscriptionVehicleType: null, // Tipo veicolo consentito dall'abbonamento attivo
     currentView: 'auth'
 };
 
-// License Plate Validation (Differentiated by type)
-function isValidPlate(plate, type = 'CAR') {
-    const cleanPlate = plate.replace(/[\s\-]/g, '').toUpperCase();
-    
-    if (type === 'MOTORBIKE') {
-        // Moto: Spesso più corte (5-7 caratteri)
-        return /^[A-Z0-9]{5,7}$/.test(cleanPlate);
-    } else {
-        // Auto: Standard europeo (7-10 caratteri)
-        return /^[A-Z0-9]{7,10}$/.test(cleanPlate);
-    }
+/**
+ * Validazione della targa con regex universale.
+ * Accetta formati con o senza trattini/spazi intermedi (es: "AA123BB", "AA 123 BB", "AA-123-BB").
+ * @param {string} plate La targa da validare
+ * @returns {boolean} True se il formato è corretto
+ */
+function isValidPlate(plate) {
+    // Regex: 1-3 caratteri, separatore opzionale (- o spazio), 1-6 caratteri
+    const regex = /^[A-Z0-9]{1,3}[-\s]?[A-Z0-9]{1,6}$/i;
+    return regex.test(plate.trim());
 }
 
 // DOM Elements
@@ -82,11 +92,17 @@ function checkAuthState() {
     }
 }
 
+/**
+ * Passa tra la vista di autenticazione e la dashboard.
+ */
 function showView(viewId) {
     Object.values(views).forEach(v => v.classList.remove('active'));
     if (views[viewId]) views[viewId].classList.add('active');
 }
 
+/**
+ * Cambia tab tra Login e Registrazione nella vista Auth.
+ */
 function switchAuthTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
@@ -94,6 +110,9 @@ function switchAuthTab(tab) {
     document.getElementById(`${tab}-form`).classList.add('active');
 }
 
+/**
+ * Gestisce il processo di login inviando le credenziali al backend.
+ */
 async function handleLogin(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button');
@@ -115,12 +134,14 @@ async function handleLogin(e) {
         if (!res.ok) throw new Error('Credenziali non valide');
         const data = await res.json();
 
+        // Aggiorna lo stato globale dell'app
         appState.isLoggedIn = true;
         appState.username = data.username;
         appState.role = data.role || 'USER';
         appState.hasActiveSubscription = !!data.hasActiveSubscription;
         appState.activeSubscriptionVehicleType = data.activeSubscriptionVehicleType || 'CAR';
         
+        // Gestione opzione "Ricordami"
         const remember = document.getElementById('login-remember').checked;
         storage.set('isLoggedIn', 'true', remember);
         storage.set('username', data.username, remember);
@@ -181,13 +202,16 @@ async function handleRegister(e) {
     }
 }
 
+/**
+ * Effettua il logout pulendo lo stato locale e chiamando l'API di logout del server.
+ */
 async function logout() {
     try {
         await fetch(`${API_BASE}/auth/logout`, {
             method: 'POST',
             credentials: 'include'
         });
-    } catch (_) { /* ignora errori di rete */ }
+    } catch (_) { /* ignora errori di rete durante il logout */ }
 
     appState.isLoggedIn = false;
     appState.username = null;
@@ -217,6 +241,10 @@ async function logout() {
 }
 
 // Navigation & Data Loading
+/**
+ * Carica e visualizza una sezione specifica della dashboard.
+ * Gestisce anche il controllo accessi per le sezioni che richiedono un abbonamento attivo.
+ */
 function loadSection(section) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     const btn = document.querySelector(`button[onclick="loadSection('${section}')"]`);
@@ -225,16 +253,16 @@ function loadSection(section) {
     const pageTitle = document.getElementById('page-title');
     const statsEl = document.querySelector('.dashboard-stats');
 
-    // Access Control: Abbonamento obbligatorio per certe sezioni
+    // Controllo Accessi: Alcune sezioni richiedono un abbonamento attivo
     const restricted = ['vehicles', 'parkings', 'reservations'];
     if (restricted.includes(section) && !appState.hasActiveSubscription) {
         showToast('Accesso negato. Rinnova l\'abbonamento per accedere a questa sezione.', 'error');
-        // Se l'utente prova ad andare in una sezione bloccata, lo mandiamo forzatamente su abbonamenti
+        // Se l'utente prova ad accedere a una sezione bloccata, lo reindirizziamo agli abbonamenti
         loadSection('subscriptions');
         return;
     }
 
-    // Nascondi tutte le sezioni
+    // Nascondi tutte le sezioni di dati prima di mostrare quella richiesta
     ['vehicles-section', 'subscriptions-section', 'reservations-section', 'parkings-section', 'dashboard-summary-section'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
@@ -242,7 +270,7 @@ function loadSection(section) {
 
     switch (section) {
         case 'dashboard':
-            pageTitle.textContent = 'Dashboard Overview';
+            pageTitle.textContent = 'Panoramica Dashboard';
             if (statsEl) statsEl.classList.remove('hidden');
             const summarySec = document.getElementById('dashboard-summary-section');
             if (summarySec) summarySec.classList.remove('hidden');
@@ -261,14 +289,6 @@ function loadSection(section) {
             if (statsEl) statsEl.classList.add('hidden');
             document.getElementById('subscriptions-section').classList.remove('hidden');
             fetchSubscriptions();
-            break;
-
-        case 'reservations':
-            pageTitle.textContent = 'Le Mie Prenotazioni';
-            if (statsEl) statsEl.classList.add('hidden');
-            ensureReservationsSection();
-            document.getElementById('reservations-section').classList.remove('hidden');
-            fetchReservations();
             break;
 
         case 'parkings':
@@ -333,6 +353,10 @@ function fetchData() {
 }
 
 // ─── API Helper ──────────────────────────────────────────────────────────────
+/**
+ * Wrapper per fetch che aggiunge automaticamente le credenziali di sessione (cookie) 
+ * e gestisce centralmente gli errori di autenticazione (401/403).
+ */
 async function fetchWithAuth(url, options = {}) {
     if (!appState.username && !appState.isLoggedIn) { 
         logout(); 
@@ -346,11 +370,10 @@ async function fetchWithAuth(url, options = {}) {
     const response = await fetch(`${API_BASE}${url}`, {
         ...options,
         headers,
-        credentials: 'include'   // invia automaticamente il cookie di sessione
+        credentials: 'include'   // Fondamentale per inviare il cookie di sessione
     });
 
-    // Se il server restituisce 401/403, andiamo comunque al login view
-    if (response.status === 401 || response.status === 403) {
+    // Se il server restituisce 401 o 403, forziamo il logout
     if (response.status === 401 || response.status === 403) {
         appState.isLoggedIn = false;
         appState.username = null;
@@ -361,25 +384,30 @@ async function fetchWithAuth(url, options = {}) {
         showView('auth');
         throw new Error('Sessione scaduta o accesso negato');
     }
-    }
 
     return response;
 }
 
 // ─── Dashboard Stats ─────────────────────────────────────────────────────────
+/**
+ * Recupera le statistiche generali per visualizzarle nella dashboard (es. numero veicoli).
+ */
 async function fetchDashboardStats() {
     try {
         const vehiclesRes = await fetchWithAuth('/api/vehicles');
         const vehicles = await vehiclesRes.json();
         document.getElementById('stat-vehicles').textContent = vehicles.length || 0;
 
-        // Recupera e mostra abbonamenti attivi in dashboard
+        // Recupera e mostra il riepilogo degli abbonamenti attivi
         fetchDashboardSubscriptions();
     } catch (e) {
-        console.error('Error fetching stats:', e);
+        console.error('Errore nel recupero delle statistiche dashboard:', e);
     }
 }
 
+/**
+ * Recupera gli abbonamenti attivi dell'utente per mostrarli nel pannello riassuntivo della dashboard.
+ */
 async function fetchDashboardSubscriptions() {
     const grid = document.getElementById('dashboard-subscriptions-grid');
     if (!grid) return;
@@ -387,6 +415,7 @@ async function fetchDashboardSubscriptions() {
     try {
         const res = await fetchWithAuth('/api/subscriptions');
         const subs = await res.json();
+        // Filtra solo gli abbonamenti attivi e non scaduti
         const activeSubs = subs.filter(s => s.active !== false && new Date(s.endDate) > new Date());
 
         if (activeSubs.length === 0) {
@@ -431,6 +460,9 @@ async function fetchDashboardSubscriptions() {
 }
 
 // ─── Veicoli ─────────────────────────────────────────────────────────────────
+/**
+ * Recupera l'elenco di tutti i veicoli dell'utente e li visualizza nella sezione dedicata.
+ */
 async function fetchVehicles() {
     const grid = document.getElementById('vehicles-grid');
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
@@ -474,6 +506,9 @@ async function fetchVehicles() {
     }
 }
 
+/**
+ * Apre il modal per l'aggiunta di un nuovo veicolo, resettando il form.
+ */
 function openAddVehicleModal() {
     const modal = document.getElementById('vehicle-modal');
     modal.querySelector('h2').textContent = 'Aggiungi Veicolo';
@@ -483,6 +518,9 @@ function openAddVehicleModal() {
     modal.style.display = 'flex';
 }
 
+/**
+ * Apre il modal per la modifica di un veicolo, caricando i dati esistenti (targa).
+ */
 function openEditVehicleModal(v) {
     const modal = document.getElementById('vehicle-modal');
     modal.querySelector('h2').textContent = 'Modifica Veicolo';
@@ -492,50 +530,44 @@ function openEditVehicleModal(v) {
     modal.style.display = 'flex';
 }
 
+/**
+ * Chiude il modal del veicolo e pulisce i dati temporanei.
+ */
 function closeAddVehicleModal() {
     document.getElementById('vehicle-modal').style.display = 'none';
     document.getElementById('add-vehicle-form').reset();
     document.getElementById('add-vehicle-form').dataset.editId = '';
 }
 
+/**
+ * Gestisce l'aggiunta o la modifica di un veicolo.
+ */
 async function handleAddVehicle(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     const editId = e.target.dataset.editId;
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Salvataggio...';
 
-    const vType = appState.activeSubscriptionVehicleType || 'CAR';
     const targaRaw = document.getElementById('veh-targa').value.trim();
-    if (!isValidPlate(targaRaw, vType)) {
-        showToast(`Targa non valida per il tipo ${vType}.`, 'error');
+    if (!isValidPlate(targaRaw)) {
+        showToast("Formato targa non valido.", "error");
+        btn.innerHTML = 'Salva';
         return;
     }
 
     try {
         const payload = {
             targa: targaRaw.toUpperCase().replace(/[\s\-]/g, ''),
-            tipo: vType
+            tipo: appState.activeSubscriptionVehicleType || 'CAR'
         };
 
-        let res;
-        if (editId) {
-            res = await fetchWithAuth(`/api/vehicles/${editId}`, {
-                method: 'PUT',
-                body: JSON.stringify(payload)
-            });
-        } else {
-            res = await fetchWithAuth('/api/vehicles', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-        }
+        const method = editId ? 'PUT' : 'POST';
+        const url = editId ? `/api/vehicles/${editId}` : '/api/vehicles';
 
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(errText || 'Errore nel salvataggio del veicolo');
-        }
+        const res = await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error(await res.text());
 
-        showToast(editId ? 'Veicolo aggiornato!' : 'Veicolo aggiunto con successo!', 'success');
+        showToast(editId ? 'Veicolo aggiornato!' : 'Veicolo aggiunto!', 'success');
         closeAddVehicleModal();
         fetchVehicles();
     } catch (err) {
@@ -545,12 +577,15 @@ async function handleAddVehicle(e) {
     }
 }
 
+/**
+ * Gestisce l'eliminazione di un veicolo previa conferma dell'utente.
+ */
 async function deleteVehicle(id) {
     if (!confirm('Sei sicuro di voler eliminare questo veicolo?')) return;
     try {
         const res = await fetchWithAuth(`/api/vehicles/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Errore durante eliminazione');
-        showToast('Veicolo eliminato', 'success');
+        if (!res.ok) throw new Error('Errore durante l\'eliminazione');
+        showToast('Veicolo eliminato con successo', 'success');
         fetchVehicles();
     } catch (err) {
         showToast(err.message, 'error');
@@ -558,6 +593,10 @@ async function deleteVehicle(id) {
 }
 
 // ─── Abbonamenti ─────────────────────────────────────────────────────────────
+/**
+ * Recupera l'elenco completo degli abbonamenti dell'utente e li visualizza in griglia.
+ * Aggiorna anche lo stato globale 'hasActiveSubscription' per gestire i permessi di navigazione.
+ */
 async function fetchSubscriptions() {
     const grid = document.getElementById('subscriptions-grid');
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
@@ -568,19 +607,19 @@ async function fetchSubscriptions() {
         const subs = await res.json();
 
         if (!subs.length) {
-            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessun abbonamento attivo. Acquistane uno.</div>';
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessun abbonamento trovato. Acquistane uno per iniziare.</div>';
             return;
         }
 
         const typeLabel = { MONTHLY: 'Mensile', QUARTERLY: 'Trimestrale', YEARLY: 'Annuale' };
         const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
 
-        // Aggiorna lo stato globale in base agli abbonamenti ricevuti
+        // Verifica se esiste almeno un abbonamento attivo e aggiorna lo stato globale
         const activeSub = subs.find(s => s.active !== false && new Date(s.endDate) > new Date());
         appState.hasActiveSubscription = !!activeSub;
-        appState.activeSubscriptionVehicleType = activeSub ? activeSub.vehicleType : 'CAR'; // Default CAR se senza abbonamento
+        appState.activeSubscriptionVehicleType = activeSub ? activeSub.vehicleType : 'CAR';
         
-        applySubscriptionUI();
+        applySubscriptionUI(); // Aggiorna l'interfaccia in base allo stato dell'abbonamento
 
         grid.innerHTML = subs.map(s => {
             const isActive = s.active !== false && new Date(s.endDate) > new Date();
@@ -646,6 +685,9 @@ async function fetchSubscriptions() {
     }
 }
 
+/**
+ * Sposta un abbonamento nel cestino (soft delete).
+ */
 async function deleteSubscription(id) {
     if (!confirm('Vuoi spostare questo abbonamento scaduto nel cestino?')) return;
     try {
@@ -664,15 +706,24 @@ async function deleteSubscription(id) {
     }
 }
 
+/**
+ * Apre il modal del cestino e carica gli abbonamenti eliminati.
+ */
 async function openBinModal() {
     document.getElementById('bin-modal').style.display = 'flex';
     fetchBinSubscriptions();
 }
 
+/**
+ * Chiude il modal del cestino.
+ */
 function closeBinModal() {
     document.getElementById('bin-modal').style.display = 'none';
 }
 
+/**
+ * Recupera gli abbonamenti nel cestino per visualizzarli nel modal.
+ */
 async function fetchBinSubscriptions() {
     const grid = document.getElementById('bin-grid');
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
@@ -708,6 +759,9 @@ async function fetchBinSubscriptions() {
     }
 }
 
+/**
+ * Ripristina un abbonamento dal cestino.
+ */
 async function restoreSubscription(id) {
     try {
         const res = await fetch(`${API_BASE}/api/subscriptions/${id}/restore`, {
@@ -715,7 +769,7 @@ async function restoreSubscription(id) {
             credentials: 'include'
         });
         if (!res.ok) throw new Error('Errore durante il ripristino');
-        showToast('Abbonamento ripristinato', 'success');
+        showToast('Abbonamento ripristinato con successo', 'success');
         fetchBinSubscriptions();
         fetchSubscriptions();
     } catch (err) {
@@ -724,11 +778,15 @@ async function restoreSubscription(id) {
 }
 
 // ─── Modal Acquisto Abbonamento ───────────────────────────────────────────────
+/**
+ * Apre il modal per l'acquisto o il rinnovo di un abbonamento.
+ * Carica dinamicamente l'elenco dei veicoli dell'utente per permetterne la selezione.
+ */
 async function openSubscriptionModal() {
-    console.log("Opening subscription modal...");
+    console.log("Apertura modal abbonamento...");
     const modal = document.getElementById('subscription-modal');
     if (!modal) {
-        console.error("Modal 'subscription-modal' not found!");
+        console.error("Modal 'subscription-modal' non trovato!");
         return;
     }
     modal.style.display = 'flex';
@@ -745,34 +803,48 @@ async function openSubscriptionModal() {
         const vehicles = await res.json();
 
         if (!vehicles.length) {
-            listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">Nessun veicolo disponibile. Aggiungine uno prima.</p>';
+            listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">Nessun veicolo disponibile. Aggiungine uno prima di procedere.</p>';
             return;
         }
 
+        // Popola la lista dei veicoli selezionabili tramite checkbox
         listEl.innerHTML = vehicles.map(v => `
             <label style="display:flex;align-items:center;gap:0.6rem;background:rgba(255,255,255,0.05);padding:0.5rem 0.8rem;border-radius:8px;cursor:pointer;">
                 <input type="checkbox" name="sub-vehicle" value="${v.id}" style="width:auto;">
-                <span><strong>${v.targa}</strong> — ${v.modello} (${v.tipo})</span>
+                <span><strong>${v.targa}</strong> — ${v.tipo}</span>
             </label>
         `).join('');
     } catch {
-        listEl.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">Errore caricamento veicoli.</p>';
+        listEl.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">Errore nel caricamento dei veicoli.</p>';
     }
 }
 
+/**
+ * Chiude il modal di acquisto abbonamento e resetta il form.
+ */
 function closeSubscriptionModal() {
     document.getElementById('subscription-modal').style.display = 'none';
     document.getElementById('subscription-form').reset();
 }
 
+/**
+ * Gestisce l'invio del form per l'acquisto di un nuovo abbonamento.
+ */
 async function handlePurchaseSubscription(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Acquisto in corso...';
 
     try {
+        // Raccoglie gli ID dei veicoli selezionati
         const selectedVehicles = [...document.querySelectorAll('input[name="sub-vehicle"]:checked')]
             .map(cb => parseInt(cb.value));
+
+        if (selectedVehicles.length === 0) {
+            showToast('Seleziona almeno un veicolo per l\'abbonamento', 'error');
+            btn.innerHTML = 'Acquista';
+            return;
+        }
 
         const payload = {
             type: document.getElementById('sub-type').value,
@@ -795,7 +867,7 @@ async function handlePurchaseSubscription(e) {
         closeSubscriptionModal();
         fetchSubscriptions();
 
-        // Mostra QR se disponibile
+        // Se il backend restituisce un QR code, apriamo subito il dettaglio per mostrarlo
         if (data.qrCode) {
             setTimeout(() => openSubDetailModal(data), 500);
         }
@@ -807,13 +879,16 @@ async function handlePurchaseSubscription(e) {
 }
 
 // ─── Modal dettaglio QR abbonamento ──────────────────────────────────────────
+/**
+ * Visualizza i dettagli di un abbonamento specifico, incluso il QR code per l'accesso.
+ */
 function openSubDetailModal(sub) {
     const modal = document.getElementById('sub-detail-modal');
     modal.style.display = 'flex';
 
     document.getElementById('sub-qr-display').textContent = sub.qrCode || 'QR non disponibile';
 
-    // Mostra immagine QR abbonamento (valida finché l'abbonamento è attivo)
+    // Carica l'immagine del QR code generata dal backend
     const qrImgEl = document.getElementById('sub-qr-image');
     if (qrImgEl && sub.qrCode) {
         qrImgEl.src = `${API_BASE}/api/subscriptions/qr/${sub.qrCode}`;
@@ -824,11 +899,11 @@ function openSubDetailModal(sub) {
 
     const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
     document.getElementById('sub-validity').textContent =
-        `Valido: ${fmtDate(sub.startDate)} → ${fmtDate(sub.endDate)}`;
+        `Validità: ${fmtDate(sub.startDate)} → ${fmtDate(sub.endDate)}`;
 
     const veicoliDisplay = document.getElementById('sub-vehicles-display');
     if (sub.vehicles && sub.vehicles.length) {
-        veicoliDisplay.textContent = `Veicoli: ${sub.vehicles.map(v => v.targa || v).join(', ')}`;
+        veicoliDisplay.textContent = `Veicoli associati: ${sub.vehicles.map(v => v.targa || v).join(', ')}`;
         veicoliDisplay.style.display = 'block';
     } else {
         veicoliDisplay.textContent = '';
@@ -836,11 +911,16 @@ function openSubDetailModal(sub) {
     }
 }
 
+/**
+ * Chiude il modal dei dettagli abbonamento.
+ */
 function closeSubDetailModal() {
     document.getElementById('sub-detail-modal').style.display = 'none';
 }
 
-// ─── Parcheggi ───────────────────────────────────────────────────────────────
+/**
+ * Recupera l'elenco dei parcheggi disponibili e il numero di posti liberi.
+ */
 async function fetchParkings() {
     const grid = document.getElementById('parkings-grid');
     if (!grid) return;
@@ -848,11 +928,11 @@ async function fetchParkings() {
 
     try {
         const res = await fetchWithAuth('/api/parkings');
-        if (!res.ok) throw new Error('Errore nel caricamento parcheggi');
+        if (!res.ok) throw new Error('Errore nel caricamento dei parcheggi');
         const parkings = await res.json();
 
         if (!parkings.length) {
-            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessun parcheggio disponibile.</div>';
+            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessun parcheggio trovato nel sistema.</div>';
             return;
         }
 
@@ -883,6 +963,9 @@ async function fetchParkings() {
 }
 
 // ─── GATE: CHECK-IN ──────────────────────────────────────────────────────────
+/**
+ * Gestisce il check-in manuale al gate (per utenti senza abbonamento o test).
+ */
 async function handleGateCheckIn() {
     const plate = document.getElementById('gate-plate').value.trim();
     const type = document.getElementById('gate-type').value;
@@ -890,8 +973,8 @@ async function handleGateCheckIn() {
 
     if (!plate) { showToast('Inserisci la targa', 'error'); return; }
     
-    if (!isValidPlate(plate, type)) {
-        showToast(`Targa non valida per un veicolo di tipo ${type}.`, 'error');
+    if (!isValidPlate(plate)) {
+        showToast("Formato targa non valido.", "error");
         return;
     }
 
@@ -915,6 +998,9 @@ async function handleGateCheckIn() {
     }
 }
 
+/**
+ * Mostra i dettagli del check-in appena effettuato, incluso il posto assegnato e il QR code.
+ */
 function showCheckInResult(data) {
     const existing = document.getElementById('checkin-result');
     if (existing) existing.remove();
@@ -955,6 +1041,9 @@ function showCheckInResult(data) {
 // ─── GATE: CHECK-OUT ─────────────────────────────────────────────────────────
 let activeCheckoutData = null;
 
+/**
+ * Gestisce la scansione (o inserimento manuale) del ticket per il check-out.
+ */
 async function handleTicketScan() {
     const qr = document.getElementById('gate-out-qr').value.trim();
     const plate = document.getElementById('gate-out-plate')?.value.trim() || '';
@@ -974,13 +1063,16 @@ async function handleTicketScan() {
             activeCheckoutData = data;
             showPaymentPage(data);
         } else {
-            showToast(data.message || 'Errore lettura ticket', 'error');
+            showToast(data.message || 'Errore nella lettura del ticket', 'error');
         }
     } catch (err) {
         showToast(err.message, 'error');
     }
 }
 
+/**
+ * Mostra la schermata di riepilogo pagamento per la sosta.
+ */
 function showPaymentPage(data) {
     document.getElementById('scan-ticket-step').style.display = 'none';
     document.getElementById('pay-ticket-step').style.display = 'block';
@@ -1010,6 +1102,9 @@ function showPaymentPage(data) {
     if (exitEl) exitEl.textContent = fmt(data.exitTime);
 }
 
+/**
+ * Resetta il flusso di check-out riportando l'utente alla scansione iniziale.
+ */
 function resetCheckOutFlow() {
     activeCheckoutData = null;
     document.getElementById('gate-out-qr').value = '';
@@ -1019,6 +1114,10 @@ function resetCheckOutFlow() {
     document.getElementById('pay-ticket-step').style.display = 'none';
 }
 
+/**
+ * Aggiorna gli elementi della navigazione per indicare visivamente quali sezioni 
+ * richiedono un abbonamento attivo.
+ */
 function applySubscriptionUI() {
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
@@ -1026,7 +1125,7 @@ function applySubscriptionUI() {
         if (onClick && (onClick.includes('vehicles') || onClick.includes('parkings') || onClick.includes('reservations'))) {
             if (!appState.hasActiveSubscription) {
                 item.style.opacity = '0.5';
-                item.title = 'Richiede abbonamento attivo';
+                item.title = 'Richiede un abbonamento attivo';
             } else {
                 item.style.opacity = '1';
                 item.title = '';
@@ -1035,6 +1134,9 @@ function applySubscriptionUI() {
     });
 }
 
+/**
+ * Gestisce la conferma del pagamento e l'apertura della sbarra in uscita.
+ */
 async function handlePayAndLeave() {
     if (!activeCheckoutData) return;
     
