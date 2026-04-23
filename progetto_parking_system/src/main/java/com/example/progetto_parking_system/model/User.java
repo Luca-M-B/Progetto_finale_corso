@@ -7,6 +7,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
+/**
+ * Entità che rappresenta un utente registrato nel sistema.
+ * Gestisce le credenziali di accesso, il ruolo e i dettagli dell'abbonamento attivo.
+ */
 @Entity
 @Data
 @Table(name = "users")

@@ -3,6 +3,10 @@ package com.example.progetto_parking_system.security;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Oggetto DTO per la richiesta di registrazione di un nuovo utente.
+ * Contiene le credenziali e le scelte iniziali di abbonamento e veicolo.
+ */
 public class RegisterRequest {
 
     @NotBlank(message = "Il campo username è obbligatorio")

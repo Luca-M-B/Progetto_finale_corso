@@ -7,7 +7,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Risposta dopo acquisto o consultazione abbonamento.
+ * Risposta contenente i dettagli di un abbonamento per il frontend.
+ * Include informazioni su validità, QR code, posto assegnato e lingua di registrazione.
  */
 @Data
 @AllArgsConstructor

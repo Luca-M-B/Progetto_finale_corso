@@ -7,6 +7,11 @@ import java.util.List;
 
 import com.example.progetto_parking_system.enums.SubscriptionType;
 
+/**
+ * Entità che rappresenta un abbonamento acquistato da un utente.
+ * L'abbonamento garantisce un posto auto riservato per un determinato periodo
+ * e genera un QR code univoco per l'accesso facilitato al parcheggio.
+ */
 @Entity
 @Data
 public class Subscription {

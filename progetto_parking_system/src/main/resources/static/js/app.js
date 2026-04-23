@@ -113,6 +113,19 @@ function getVehicleIcon(type) {
     }
 }
 
+/**
+ * Determina l'etichetta del tipo di abbonamento.
+ * Utilizza la lingua salvata al momento della registrazione (s.language) per garantire
+ * che l'utente veda sempre la stessa dicitura (es. "Mensile" anche se cambia UI in EN).
+ * @param {Object} s L'oggetto abbonamento
+ * @returns {string} L'etichetta localizzata
+ */
+function getTypeLabel(s) {
+    const lang = s.language || 'it';
+    const typeKey = s.type ? s.type.toLowerCase() : 'nav_subscriptions';
+    return (translations[lang] && translations[lang][typeKey]) || s.type;
+}
+
 // DOM Elements
 const views = {
     auth: document.getElementById('auth-view'),
@@ -492,11 +505,6 @@ async function fetchDashboardSubscriptions() {
             return;
         }
 
-        const getTypeLabel = (s) => {
-            const lang = s.language || 'it';
-            const typeKey = s.type ? s.type.toLowerCase() : 'nav_subscriptions';
-            return (translations[lang] && translations[lang][typeKey]) || s.type;
-        };
         const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : 'N/A';
 
         grid.innerHTML = activeSubs.map(s => `
@@ -694,11 +702,6 @@ async function fetchSubscriptions() {
             return;
         }
 
-        const getTypeLabel = (s) => {
-            const lang = s.language || 'it';
-            const typeKey = s.type ? s.type.toLowerCase() : 'nav_subscriptions';
-            return (translations[lang] && translations[lang][typeKey]) || s.type;
-        };
         const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : 'N/A';
 
         // Verifica se esiste almeno un abbonamento attivo e aggiorna lo stato globale
@@ -824,11 +827,6 @@ async function fetchBinSubscriptions() {
             return;
         }
 
-        const getTypeLabel = (s) => {
-            const lang = s.language || 'it';
-            const typeKey = s.type ? s.type.toLowerCase() : 'nav_subscriptions';
-            return (translations[lang] && translations[lang][typeKey]) || s.type;
-        };
         const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : '—';
 
         grid.innerHTML = subs.map(s => `

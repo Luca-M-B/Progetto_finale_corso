@@ -8,6 +8,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
+/**
+ * Entità che rappresenta un veicolo nel sistema.
+ * Ogni veicolo è identificato univocamente dalla targa ed è associato a un proprietario (User).
+ */
 @Entity
 @Data
 public class Vehicle {
@@ -16,9 +20,10 @@ public class Vehicle {
     private Long id;
 
     @Column(unique = true)
-    private String targa;
-    private String tipo;
+    private String targa; // Targa univoca del veicolo
+
+    private String tipo; // Tipologia di veicolo (es. CAR, MOTORBIKE)
 
     @ManyToOne
-    private User user;
+    private User user; // Proprietario del veicolo
 }
