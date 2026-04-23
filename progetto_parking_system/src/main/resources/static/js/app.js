@@ -31,8 +31,62 @@ let appState = {
     role: storage.get('role') || null,
     hasActiveSubscription: false,
     activeSubscriptionVehicleType: null, // Tipo veicolo consentito dall'abbonamento attivo
-    currentView: 'auth'
+    currentView: 'auth',
+    language: storage.get('language') || 'it'
 };
+
+/**
+ * Funzioni per l'internazionalizzazione (i18n)
+ */
+function i18n(key) {
+    return (translations[appState.language] && translations[appState.language][key]) || key;
+}
+
+function setLanguage(lang) {
+    appState.language = lang;
+    storage.set('language', lang, true);
+    updatePageTranslations();
+    
+    // Aggiorna classi attive sui pulsanti lingua
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.id === `lang-${lang}` || btn.id === `lang-${lang}-side`) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function updatePageTranslations() {
+    // Traduzione elementi con data-i18n
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.innerHTML = i18n(key);
+    });
+
+    // Traduzione placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        el.placeholder = i18n(key);
+    });
+
+    // Aggiorna titolo pagina se necessario
+    const currentSection = document.querySelector('.nav-item.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (currentSection) {
+        updatePageTitle(currentSection);
+    }
+}
+
+function updatePageTitle(section) {
+    const pageTitle = document.getElementById('page-title');
+    if (!pageTitle) return;
+
+    switch (section) {
+        case 'dashboard': pageTitle.textContent = i18n('dashboard_overview'); break;
+        case 'vehicles': pageTitle.textContent = i18n('nav_vehicles'); break;
+        case 'subscriptions': pageTitle.textContent = i18n('nav_subscriptions'); break;
+        default: pageTitle.textContent = section.charAt(0).toUpperCase() + section.slice(1);
+    }
+}
 
 /**
  * Validazione della targa con regex universale.
@@ -55,6 +109,7 @@ const views = {
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
     restoreSavedCredentials();
+    setLanguage(appState.language); // Applica la lingua salvata
     checkAuthState();
     setupEventListeners();
 });
@@ -85,7 +140,7 @@ function setupEventListeners() {
 function checkAuthState() {
     if (appState.isLoggedIn || appState.username) {
         showView('dashboard');
-        document.getElementById('display-username').textContent = appState.username || 'Utente';
+        document.getElementById('display-username').textContent = appState.username || i18n('user_placeholder');
         loadSection('dashboard');
     } else {
         showView('auth');
@@ -116,7 +171,7 @@ function switchAuthTab(tab) {
 async function handleLogin(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button');
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Attendere...';
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${i18n('wait_btn')}`;
 
     try {
         const payload = {
@@ -131,7 +186,7 @@ async function handleLogin(e) {
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error('Credenziali non valide');
+        if (!res.ok) throw new Error(i18n('invalid_credentials') || 'Credenziali non valide');
         const data = await res.json();
 
         // Aggiorna lo stato globale dell'app
@@ -159,19 +214,19 @@ async function handleLogin(e) {
 
         document.getElementById('display-username').textContent = data.username;
         applySubscriptionUI();
-        showToast('Login effettuato con successo!', 'success');
+        showToast(i18n('login_success'), 'success');
         checkAuthState();
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        btn.innerHTML = 'Accedi <i class="fa-solid fa-arrow-right"></i>';
+        btn.innerHTML = `${i18n('login_btn')} <i class="fa-solid fa-arrow-right"></i>`;
     }
 }
 
 async function handleRegister(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button');
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Registrazione...';
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${i18n('registering_btn')}`;
 
     try {
         const payload = {
@@ -190,15 +245,15 @@ async function handleRegister(e) {
 
         if (!res.ok) {
             const errText = await res.text();
-            throw new Error(errText || 'Errore durante la registrazione');
+            throw new Error(errText || i18n('reg_error'));
         }
 
-        showToast('Registrazione completata! Ora puoi fare login.', 'success');
+        showToast(i18n('reg_success'), 'success');
         switchAuthTab('login');
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        btn.innerHTML = 'Registrati <i class="fa-solid fa-user-plus"></i>';
+        btn.innerHTML = `${i18n('register_tab')} <i class="fa-solid fa-user-plus"></i>`;
     }
 }
 
@@ -256,7 +311,7 @@ function loadSection(section) {
     // Controllo Accessi: Alcune sezioni richiedono un abbonamento attivo
     const restricted = ['vehicles', 'parkings', 'reservations'];
     if (restricted.includes(section) && !appState.hasActiveSubscription) {
-        showToast('Accesso negato. Rinnova l\'abbonamento per accedere a questa sezione.', 'error');
+        showToast(i18n('access_denied_sub'), 'error');
         // Se l'utente prova ad accedere a una sezione bloccata, lo reindirizziamo agli abbonamenti
         loadSection('subscriptions');
         return;
@@ -270,7 +325,7 @@ function loadSection(section) {
 
     switch (section) {
         case 'dashboard':
-            pageTitle.textContent = 'Panoramica Dashboard';
+            updatePageTitle('dashboard');
             if (statsEl) statsEl.classList.remove('hidden');
             const summarySec = document.getElementById('dashboard-summary-section');
             if (summarySec) summarySec.classList.remove('hidden');
@@ -278,14 +333,14 @@ function loadSection(section) {
             break;
 
         case 'vehicles':
-            pageTitle.textContent = 'Gestione Veicoli';
+            updatePageTitle('vehicles');
             if (statsEl) statsEl.classList.add('hidden');
             document.getElementById('vehicles-section').classList.remove('hidden');
             fetchVehicles();
             break;
 
         case 'subscriptions':
-            pageTitle.textContent = 'I Miei Abbonamenti';
+            updatePageTitle('subscriptions');
             if (statsEl) statsEl.classList.add('hidden');
             document.getElementById('subscriptions-section').classList.remove('hidden');
             fetchSubscriptions();
@@ -314,9 +369,9 @@ function ensureReservationsSection() {
         div.id = 'reservations-section';
         div.innerHTML = `
             <div class="section-header">
-                <h3><i class="fa-solid fa-calendar-check" style="margin-right:6px;"></i>Le Mie Prenotazioni</h3>
+                <h3><i class="fa-solid fa-calendar-check" style="margin-right:6px;"></i><span data-i18n="my_reservations">Le Mie Prenotazioni</span></h3>
                 <button class="btn-primary btn-sm" onclick="openReservationModal()">
-                    <i class="fa-solid fa-plus"></i> Nuova Prenotazione
+                    <i class="fa-solid fa-plus"></i> <span data-i18n="add_btn">Aggiungi</span>
                 </button>
             </div>
             <div class="grid-container" id="reservations-grid"></div>
@@ -336,7 +391,7 @@ function ensureParkingsSection() {
         div.id = 'parkings-section';
         div.innerHTML = `
             <div class="section-header">
-                <h3><i class="fa-solid fa-square-parking" style="margin-right:6px;"></i>Parcheggi Disponibili</h3>
+                <h3><i class="fa-solid fa-square-parking" style="margin-right:6px;"></i><span data-i18n="parkings_available">Parcheggi Disponibili</span></h3>
             </div>
             <div class="grid-container" id="parkings-grid"></div>
         `;
@@ -419,12 +474,12 @@ async function fetchDashboardSubscriptions() {
         const activeSubs = subs.filter(s => s.active !== false && new Date(s.endDate) > new Date());
 
         if (activeSubs.length === 0) {
-            grid.innerHTML = '<p style="color:var(--text-muted); padding:1rem; grid-column:1/-1; text-align:center;">Nessun abbonamento attivo.</p>';
+            grid.innerHTML = `<p style="color:var(--text-muted); padding:1rem; grid-column:1/-1; text-align:center;">${i18n('no_active_subscriptions')}</p>`;
             return;
         }
 
-        const typeLabel = { MONTHLY: 'Mensile', QUARTERLY: 'Trimestrale', YEARLY: 'Annuale' };
-        const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
+        const typeLabel = { MONTHLY: i18n('monthly'), QUARTERLY: i18n('quarterly'), YEARLY: i18n('yearly') };
+        const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : 'N/A';
 
         grid.innerHTML = activeSubs.map(s => `
             <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;position:relative;overflow:hidden;">
@@ -432,25 +487,25 @@ async function fetchDashboardSubscriptions() {
                     <div class="stat-icon purple" style="width:40px;height:40px;font-size:1.2rem;">
                         <i class="fa-solid fa-id-card"></i>
                     </div>
-                    <span style="background:rgba(72,219,152,0.2);color:#48db98;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">ATTIVO</span>
+                    <span style="background:rgba(72,219,152,0.2);color:#48db98;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">${i18n('active_badge')}</span>
                 </div>
                 <h3 style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">
-                    ${typeLabel[s.type] || s.type || 'Abbonamento'}
+                    ${typeLabel[s.type] || s.type || i18n('nav_subscriptions')}
                 </h3>
                 <div style="width:100%;background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:5px 0;">
                     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                        <i class="fa-regular fa-calendar"></i> Scadenza: <strong>${fmtDate(s.endDate)}</strong>
+                        <i class="fa-regular fa-calendar"></i> ${i18n('expiry_label')}: <strong>${fmtDate(s.endDate)}</strong>
                     </p>
                     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                        <i class="fa-solid fa-car-side"></i> Veicolo: <strong>${s.vehicleType || 'N/A'}</strong>
+                        <i class="fa-solid fa-car-side"></i> ${i18n('vehicle_label')}: <strong>${s.vehicleType || 'N/A'}</strong>
                     </p>
                     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                        <i class="fa-solid fa-map-pin"></i> Posto: <strong style="color:#63b3ed;">${s.spotCode || 'Assegnazione...'}</strong>
+                        <i class="fa-solid fa-map-pin"></i> ${i18n('spot_code_label')}: <strong style="color:#63b3ed;">${s.spotCode || '...'}</strong>
                     </p>
                 </div>
                 ${s.vehiclePlates && s.vehiclePlates.length ? `
                     <p style="font-size:0.8rem;color:#63b3ed;margin-top:5px;">
-                        <i class="fa-solid fa-car"></i> Veicoli: ${s.vehiclePlates.join(', ')}
+                        <i class="fa-solid fa-car"></i> ${i18n('nav_vehicles')}: ${s.vehiclePlates.join(', ')}
                     </p>` : ''}
             </div>
         `).join('');
@@ -473,7 +528,7 @@ async function fetchVehicles() {
         const vehicles = await res.json();
 
         if (!vehicles.length) {
-            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessun veicolo trovato. Aggiungine uno.</div>';
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">${i18n('no_vehicles_found')}</div>`;
             return;
         }
 
@@ -487,12 +542,12 @@ async function fetchVehicles() {
                         ${v.targa}
                     </span>
                 </div>
-                <h3 style="color:#fff;font-size:1rem;margin:0.5rem 0 0.2rem 0;">Tipo: ${v.tipo}</h3>
+                <h3 style="color:#fff;font-size:1rem;margin:0.5rem 0 0.2rem 0;">${i18n('vehicle_type')}: ${i18n(v.tipo.toLowerCase()) || v.tipo}</h3>
                 
                 <div style="display:flex;gap:10px;margin-top:1rem;width:100%;">
                     <button class="btn-primary" style="flex:1;padding:0.4rem;font-size:0.85rem;background:rgba(255,255,255,0.1);color:#fff;"
                         onclick='openEditVehicleModal(${JSON.stringify(v).replace(/"/g, '&quot;')})'>
-                        <i class="fa-solid fa-pen"></i> Modifica
+                        <i class="fa-solid fa-pen"></i> ${i18n('edit_btn')}
                     </button>
                     <button class="btn-primary" style="flex:1;padding:0.4rem;font-size:0.85rem;background:var(--danger);"
                         onclick="deleteVehicle(${v.id})">
@@ -511,7 +566,7 @@ async function fetchVehicles() {
  */
 function openAddVehicleModal() {
     const modal = document.getElementById('vehicle-modal');
-    modal.querySelector('h2').textContent = 'Aggiungi Veicolo';
+    modal.querySelector('h2').textContent = i18n('add_vehicle_title');
     const form = document.getElementById('add-vehicle-form');
     form.reset();
     form.dataset.editId = '';
@@ -523,7 +578,7 @@ function openAddVehicleModal() {
  */
 function openEditVehicleModal(v) {
     const modal = document.getElementById('vehicle-modal');
-    modal.querySelector('h2').textContent = 'Modifica Veicolo';
+    modal.querySelector('h2').textContent = i18n('edit_vehicle_title');
     const form = document.getElementById('add-vehicle-form');
     form.dataset.editId = v.id;
     document.getElementById('veh-targa').value = v.targa;
@@ -546,12 +601,12 @@ async function handleAddVehicle(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     const editId = e.target.dataset.editId;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Salvataggio...';
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${i18n('saving_btn')}`;
 
     const targaRaw = document.getElementById('veh-targa').value.trim();
     if (!isValidPlate(targaRaw)) {
-        showToast("Formato targa non valido.", "error");
-        btn.innerHTML = 'Salva';
+        showToast(i18n('invalid_plate'), "error");
+        btn.innerHTML = i18n('save_btn');
         return;
     }
 
@@ -567,13 +622,13 @@ async function handleAddVehicle(e) {
         const res = await fetchWithAuth(url, { method, body: JSON.stringify(payload) });
         if (!res.ok) throw new Error(await res.text());
 
-        showToast(editId ? 'Veicolo aggiornato!' : 'Veicolo aggiunto!', 'success');
+        showToast(editId ? i18n('vehicle_updated') : i18n('vehicle_added'), 'success');
         closeAddVehicleModal();
         fetchVehicles();
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        btn.innerHTML = 'Salva';
+        btn.innerHTML = i18n('save_btn');
     }
 }
 
@@ -581,11 +636,11 @@ async function handleAddVehicle(e) {
  * Gestisce l'eliminazione di un veicolo previa conferma dell'utente.
  */
 async function deleteVehicle(id) {
-    if (!confirm('Sei sicuro di voler eliminare questo veicolo?')) return;
+    if (!confirm(i18n('confirm_delete_vehicle'))) return;
     try {
         const res = await fetchWithAuth(`/api/vehicles/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Errore durante l\'eliminazione');
-        showToast('Veicolo eliminato con successo', 'success');
+        if (!res.ok) throw new Error(i18n('loading_error'));
+        showToast(i18n('vehicle_deleted'), 'success');
         fetchVehicles();
     } catch (err) {
         showToast(err.message, 'error');
@@ -607,12 +662,12 @@ async function fetchSubscriptions() {
         const subs = await res.json();
 
         if (!subs.length) {
-            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessun abbonamento trovato. Acquistane uno per iniziare.</div>';
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">${i18n('no_subscriptions_found')}</div>`;
             return;
         }
 
-        const typeLabel = { MONTHLY: 'Mensile', QUARTERLY: 'Trimestrale', YEARLY: 'Annuale' };
-        const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
+        const typeLabel = { MONTHLY: i18n('monthly'), QUARTERLY: i18n('quarterly'), YEARLY: i18n('yearly') };
+        const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : 'N/A';
 
         // Verifica se esiste almeno un abbonamento attivo e aggiorna lo stato globale
         const activeSub = subs.find(s => s.active !== false && new Date(s.endDate) > new Date());
@@ -624,8 +679,8 @@ async function fetchSubscriptions() {
         grid.innerHTML = subs.map(s => {
             const isActive = s.active !== false && new Date(s.endDate) > new Date();
             const badge = isActive
-                ? `<span style="background:rgba(72,219,152,0.2);color:#48db98;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">ATTIVO</span>`
-                : `<span style="background:rgba(255,99,132,0.2);color:#ff6384;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">SCADUTO</span>`;
+                ? `<span style="background:rgba(72,219,152,0.2);color:#48db98;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">${i18n('active_badge')}</span>`
+                : `<span style="background:rgba(255,99,132,0.2);color:#ff6384;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">${i18n('expired_badge')}</span>`;
 
             const endDate = new Date(s.endDate);
             const today = new Date();
@@ -641,39 +696,39 @@ async function fetchSubscriptions() {
                         ${badge}
                     </div>
                     <h3 style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">
-                        ${typeLabel[s.type] || s.type || 'Abbonamento'}
+                        ${typeLabel[s.type] || s.type || i18n('nav_subscriptions')}
                     </h3>
                     <div style="width:100%;background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:5px 0;">
                         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                            <i class="fa-regular fa-calendar"></i> Scadenza: <strong>${fmtDate(s.endDate)}</strong>
+                            <i class="fa-regular fa-calendar"></i> ${i18n('expiry_label')}: <strong>${fmtDate(s.endDate)}</strong>
                         </p>
                         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                            <i class="fa-solid fa-car-side"></i> Veicolo: <strong>${s.vehicleType || 'N/A'}</strong>
+                            <i class="fa-solid fa-car-side"></i> ${i18n('vehicle_label')}: <strong>${s.vehicleType || 'N/A'}</strong>
                         </p>
                         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                            <i class="fa-solid fa-map-pin"></i> Posto: <strong style="color:#63b3ed;">${s.spotCode || 'Assegnazione...'}</strong>
+                            <i class="fa-solid fa-map-pin"></i> ${i18n('spot_code_label')}: <strong style="color:#63b3ed;">${s.spotCode || '...'}</strong>
                         </p>
                         <p style="font-size:0.9rem;color:${isActive ? '#48db98' : '#ff6384'};font-weight:600;">
-                            <i class="fa-solid fa-hourglass-half"></i> ${isActive ? `${daysRemaining} giorni rimanenti` : 'Abbonamento scaduto'}
+                            <i class="fa-solid fa-hourglass-half"></i> ${isActive ? `${daysRemaining} ${i18n('days_remaining')}` : i18n('subscription_expired')}
                         </p>
                     </div>
                     ${s.vehiclePlates && s.vehiclePlates.length ? `
                         <p style="font-size:0.8rem;color:#63b3ed;margin-top:5px;">
-                            <i class="fa-solid fa-car"></i> Veicoli: ${s.vehiclePlates.join(', ')}
+                            <i class="fa-solid fa-car"></i> ${i18n('nav_vehicles')}: ${s.vehiclePlates.join(', ')}
                         </p>` : ''}
                     <div style="display:flex;gap:8px;width:100%;margin-top:0.8rem;align-items:center;">
                         ${s.qrCode ? `
                             <button class="btn-primary" style="flex:1;font-size:0.85rem;background:rgba(99,179,237,0.15);padding:8px 4px;"
                                 onclick='openSubDetailModal(${JSON.stringify(s)})'>
-                                <i class="fa-solid fa-qrcode"></i> QR
+                                <i class="fa-solid fa-qrcode"></i> ${i18n('qr_btn')}
                             </button>` : ''}
                         <button class="btn-primary btn-accent" style="flex:1;font-size:0.85rem;padding:8px 4px;"
                             onclick='openSubscriptionModal()'>
-                            <i class="fa-solid fa-rotate"></i> Rinnova
+                            <i class="fa-solid fa-rotate"></i> ${i18n('renew_btn')}
                         </button>
                         ${!isActive ? `
                         <button class="btn-primary" style="width:40px;height:36px;flex-shrink:0;background:rgba(239,68,68,0.15);color:var(--danger);border-color:transparent;display:flex;align-items:center;justify-content:center;"
-                            onclick='deleteSubscription(${s.id})' title="Sposta nel cestino">
+                            onclick='deleteSubscription(${s.id})' title="${i18n('delete_tooltip')}">
                             <i class="fa-solid fa-trash"></i>
                         </button>` : ''}
                     </div>
@@ -689,7 +744,7 @@ async function fetchSubscriptions() {
  * Sposta un abbonamento nel cestino (soft delete).
  */
 async function deleteSubscription(id) {
-    if (!confirm('Vuoi spostare questo abbonamento scaduto nel cestino?')) return;
+    if (!confirm(i18n('confirm_bin_sub'))) return;
     try {
         const res = await fetch(`${API_BASE}/api/subscriptions/${id}`, {
             method: 'DELETE',
@@ -697,9 +752,9 @@ async function deleteSubscription(id) {
         });
         if (!res.ok) {
             const data = await res.json();
-            throw new Error(data.message || 'Errore durante l\'eliminazione');
+            throw new Error(data.message || i18n('loading_error'));
         }
-        showToast('Abbonamento spostato nel cestino', 'success');
+        showToast(i18n('sub_moved_bin'), 'success');
         fetchSubscriptions();
     } catch (err) {
         showToast(err.message, 'error');
@@ -733,23 +788,23 @@ async function fetchBinSubscriptions() {
         const subs = await res.json();
         
         if (subs.length === 0) {
-            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);">Il cestino è vuoto</div>';
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);">${i18n('empty_bin')}</div>`;
             return;
         }
 
-        const typeLabel = { 'MONTHLY': 'Mensile', 'QUARTERLY': 'Trimestrale', 'YEARLY': 'Annuale' };
-        const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : '—';
+        const typeLabel = { MONTHLY: i18n('monthly'), QUARTERLY: i18n('quarterly'), YEARLY: i18n('yearly') };
+        const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : '—';
 
         grid.innerHTML = subs.map(s => `
             <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;border-color:rgba(239,68,68,0.2);">
                 <h3 style="color:#fff;font-size:1rem;margin:0;">${typeLabel[s.type] || s.type}</h3>
                 <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">
-                    Scaduto il: <strong>${fmtDate(s.endDate)}</strong>
+                    ${i18n('expired_at')}: <strong>${fmtDate(s.endDate)}</strong>
                 </p>
                 <div style="display:flex;gap:8px;width:100%;margin-top:0.5rem;">
                     <button class="btn-primary" style="flex:1;font-size:0.75rem;background:rgba(72,219,152,0.1);color:#48db98;border-color:#48db98;"
                         onclick='restoreSubscription(${s.id})'>
-                        <i class="fa-solid fa-rotate-left"></i> Ripristina
+                        <i class="fa-solid fa-rotate-left"></i> ${i18n('restore_btn')}
                     </button>
                 </div>
             </div>
@@ -768,8 +823,8 @@ async function restoreSubscription(id) {
             method: 'POST',
             credentials: 'include'
         });
-        if (!res.ok) throw new Error('Errore durante il ripristino');
-        showToast('Abbonamento ripristinato con successo', 'success');
+        if (!res.ok) throw new Error(i18n('loading_error'));
+        showToast(i18n('sub_restored'), 'success');
         fetchBinSubscriptions();
         fetchSubscriptions();
     } catch (err) {
@@ -794,7 +849,7 @@ async function openSubscriptionModal() {
 
     const listEl = document.getElementById('sub-vehicles-list');
     if (listEl) {
-        listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> Caricamento veicoli...</p>';
+        listEl.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;"><i class="fa-solid fa-spinner fa-spin"></i> ${i18n('loading_vehicles')}</p>`;
     }
 
     try {
@@ -803,7 +858,7 @@ async function openSubscriptionModal() {
         const vehicles = await res.json();
 
         if (!vehicles.length) {
-            listEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">Nessun veicolo disponibile. Aggiungine uno prima di procedere.</p>';
+            listEl.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;">${i18n('no_vehicles_available')}</p>`;
             return;
         }
 
@@ -811,11 +866,11 @@ async function openSubscriptionModal() {
         listEl.innerHTML = vehicles.map(v => `
             <label style="display:flex;align-items:center;gap:0.6rem;background:rgba(255,255,255,0.05);padding:0.5rem 0.8rem;border-radius:8px;cursor:pointer;">
                 <input type="checkbox" name="sub-vehicle" value="${v.id}" style="width:auto;">
-                <span><strong>${v.targa}</strong> — ${v.tipo}</span>
+                <span><strong>${v.targa}</strong> — ${i18n(v.tipo.toLowerCase()) || v.tipo}</span>
             </label>
         `).join('');
     } catch {
-        listEl.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">Errore nel caricamento dei veicoli.</p>';
+        listEl.innerHTML = `<p style="color:var(--danger);font-size:0.85rem;">${i18n('loading_error')}</p>`;
     }
 }
 
@@ -833,7 +888,7 @@ function closeSubscriptionModal() {
 async function handlePurchaseSubscription(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Acquisto in corso...';
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${i18n('buying_btn')}`;
 
     try {
         // Raccoglie gli ID dei veicoli selezionati
@@ -841,8 +896,8 @@ async function handlePurchaseSubscription(e) {
             .map(cb => parseInt(cb.value));
 
         if (selectedVehicles.length === 0) {
-            showToast('Seleziona almeno un veicolo per l\'abbonamento', 'error');
-            btn.innerHTML = 'Acquista';
+            showToast(i18n('select_at_least_one_vehicle'), 'error');
+            btn.innerHTML = i18n('buy_btn');
             return;
         }
 
@@ -859,11 +914,11 @@ async function handlePurchaseSubscription(e) {
 
         if (!res.ok) {
             const errText = await res.text();
-            throw new Error(errText || 'Errore durante l\'acquisto');
+            throw new Error(errText || i18n('loading_error'));
         }
 
         const data = await res.json();
-        showToast('Abbonamento acquistato con successo!', 'success');
+        showToast(i18n('sub_purchased_success'), 'success');
         closeSubscriptionModal();
         fetchSubscriptions();
 
@@ -874,7 +929,7 @@ async function handlePurchaseSubscription(e) {
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        btn.innerHTML = 'Acquista <i class="fa-solid fa-credit-card"></i>';
+        btn.innerHTML = `${i18n('buy_btn')} <i class="fa-solid fa-credit-card"></i>`;
     }
 }
 
@@ -886,7 +941,7 @@ function openSubDetailModal(sub) {
     const modal = document.getElementById('sub-detail-modal');
     modal.style.display = 'flex';
 
-    document.getElementById('sub-qr-display').textContent = sub.qrCode || 'QR non disponibile';
+    document.getElementById('sub-qr-display').textContent = sub.qrCode || i18n('qr_not_available');
 
     // Carica l'immagine del QR code generata dal backend
     const qrImgEl = document.getElementById('sub-qr-image');
@@ -897,13 +952,13 @@ function openSubDetailModal(sub) {
         qrImgEl.style.display = 'none';
     }
 
-    const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : 'N/A';
+    const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : 'N/A';
     document.getElementById('sub-validity').textContent =
-        `Validità: ${fmtDate(sub.startDate)} → ${fmtDate(sub.endDate)}`;
+        `${i18n('validity_label')}: ${fmtDate(sub.startDate)} → ${fmtDate(sub.endDate)}`;
 
     const veicoliDisplay = document.getElementById('sub-vehicles-display');
     if (sub.vehicles && sub.vehicles.length) {
-        veicoliDisplay.textContent = `Veicoli associati: ${sub.vehicles.map(v => v.targa || v).join(', ')}`;
+        veicoliDisplay.textContent = `${i18n('associated_vehicles')}: ${sub.vehicles.map(v => v.targa || v).join(', ')}`;
         veicoliDisplay.style.display = 'block';
     } else {
         veicoliDisplay.textContent = '';
@@ -928,11 +983,11 @@ async function fetchParkings() {
 
     try {
         const res = await fetchWithAuth('/api/parkings');
-        if (!res.ok) throw new Error('Errore nel caricamento dei parcheggi');
+        if (!res.ok) throw new Error(i18n('loading_error'));
         const parkings = await res.json();
 
         if (!parkings.length) {
-            grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">Nessun parcheggio trovato nel sistema.</div>';
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted)">${i18n('no_parkings_found')}</div>`;
             return;
         }
 
@@ -943,12 +998,12 @@ async function fetchParkings() {
                         <i class="fa-solid fa-square-parking"></i>
                     </div>
                     <span style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:4px;font-size:0.8rem;">
-                        Piano ${p.floorLevel ?? 'N/A'}
+                        ${i18n('floor_label')} ${p.floorLevel ?? 'N/A'}
                     </span>
                 </div>
-                <h3 style="color:#fff;font-size:1rem;margin-top:0.5rem;">${p.name || p.code || 'Parcheggio'}</h3>
+                <h3 style="color:#fff;font-size:1rem;margin-top:0.5rem;">${p.name || p.code || i18n('parking')}</h3>
                 <p style="font-size:0.82rem;color:var(--text-muted);">
-                    Posti liberi: <strong style="color:#48db98;">${p.availableSpots ?? 'N/A'}</strong>
+                    ${i18n('free_spots')}: <strong style="color:#48db98;">${p.availableSpots ?? 'N/A'}</strong>
                     / ${p.totalSpots ?? 'N/A'}
                 </p>
                 ${p.pricePerHour != null ? `
@@ -971,10 +1026,10 @@ async function handleGateCheckIn() {
     const type = document.getElementById('gate-type').value;
     const disability = document.getElementById('gate-disability').checked;
 
-    if (!plate) { showToast('Inserisci la targa', 'error'); return; }
+    if (!plate) { showToast(i18n('enter_plate'), 'error'); return; }
     
     if (!isValidPlate(plate)) {
-        showToast("Formato targa non valido.", "error");
+        showToast(i18n('invalid_plate'), "error");
         return;
     }
 
@@ -991,7 +1046,7 @@ async function handleGateCheckIn() {
             document.getElementById('gate-plate').value = '';
             document.getElementById('gate-disability').checked = false;
         } else {
-            showToast(data.message || 'Errore durante il check-in', 'error');
+            showToast(data.message || i18n('loading_error'), 'error');
         }
     } catch (err) {
         showToast(err.message, 'error');
@@ -1006,36 +1061,36 @@ function showCheckInResult(data) {
     if (existing) existing.remove();
 
     const entryTime = data.entryTime
-        ? new Date(data.entryTime).toLocaleTimeString('it-IT')
-        : new Date().toLocaleTimeString('it-IT');
+        ? new Date(data.entryTime).toLocaleTimeString(appState.language === 'it' ? 'it-IT' : 'en-US')
+        : new Date().toLocaleTimeString(appState.language === 'it' ? 'it-IT' : 'en-US');
 
     const div = document.createElement('div');
     div.id = 'checkin-result';
     div.style.cssText = 'background:rgba(72,219,152,0.15);border:1px solid rgba(72,219,152,0.4);border-radius:12px;padding:1.2rem;margin-top:1rem;text-align:center;';
     div.innerHTML = `
         <i class="fa-solid fa-circle-check" style="font-size:2rem;color:#48db98;margin-bottom:0.5rem;"></i>
-        <h4 style="color:#48db98;margin-bottom:0.8rem;">Check-in Effettuato!</h4>
+        <h4 style="color:#48db98;margin-bottom:0.8rem;">${i18n('checkin_performed')}</h4>
         <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:0.8rem;margin-bottom:0.8rem;">
-            <p style="margin:0.2rem 0;"><strong>Piano:</strong> ${data.floorLevel ?? 'N/A'}</p>
-            <p style="margin:0.2rem 0;"><strong>Posto:</strong> ${data.spotCode ?? 'N/A'}</p>
-            <p style="margin:0.2rem 0;"><strong>Orario ingresso:</strong> ${entryTime}</p>
+            <p style="margin:0.2rem 0;"><strong>${i18n('floor_label')}:</strong> ${data.floorLevel ?? 'N/A'}</p>
+            <p style="margin:0.2rem 0;"><strong>${i18n('spot_label')}:</strong> ${data.spotCode ?? 'N/A'}</p>
+            <p style="margin:0.2rem 0;"><strong>${i18n('entry_time_label')}:</strong> ${entryTime}</p>
         </div>
-        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.4rem;">QR Code per il check-out (valido fino all'uscita):</p>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.4rem;">${i18n('qr_for_checkout')}</p>
         <img src="${API_BASE}/api/gate/qr/${data.qrCode}"
              alt="QR Code check-in"
              style="width:180px;height:180px;border-radius:8px;margin:0.5rem auto;display:block;background:#fff;padding:6px;"
              onerror="this.style.display='none'">
-        <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.3rem;">Token testuale (alternativo):</p>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.3rem;">${i18n('alt_token_label')}</p>
         <div style="background:rgba(0,0,0,0.4);border-radius:8px;padding:0.6rem;word-break:break-all;font-family:monospace;font-size:0.75rem;color:#fff;margin-bottom:0.8rem;">
             ${data.qrCode}
         </div>
         <button onclick="document.getElementById('checkin-result').remove()"
             style="font-size:0.8rem;background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff;padding:0.4rem 1rem;border-radius:6px;cursor:pointer;">
-            Chiudi
+            ${i18n('close_btn')}
         </button>
     `;
     document.getElementById('gate-checkin-section').appendChild(div);
-    showToast('Check-in completato! Posto: ' + (data.spotCode ?? 'N/A'), 'success');
+    showToast(i18n('checkin_success') + (data.spotCode ?? 'N/A'), 'success');
 }
 
 // ─── GATE: CHECK-OUT ─────────────────────────────────────────────────────────
@@ -1048,8 +1103,8 @@ async function handleTicketScan() {
     const qr = document.getElementById('gate-out-qr').value.trim();
     const plate = document.getElementById('gate-out-plate')?.value.trim() || '';
 
-    if (!qr) { showToast('Inserisci il Token QR', 'error'); return; }
-    if (!plate) { showToast('Inserisci la targa', 'error'); return; }
+    if (!qr) { showToast(i18n('enter_qr_token'), 'error'); return; }
+    if (!plate) { showToast(i18n('enter_plate'), 'error'); return; }
 
     try {
         const res = await fetch(`${API_BASE}/api/gate/check-out`, {
@@ -1063,7 +1118,7 @@ async function handleTicketScan() {
             activeCheckoutData = data;
             showPaymentPage(data);
         } else {
-            showToast(data.message || 'Errore nella lettura del ticket', 'error');
+            showToast(data.message || i18n('loading_error'), 'error');
         }
     } catch (err) {
         showToast(err.message, 'error');
@@ -1078,7 +1133,7 @@ function showPaymentPage(data) {
     document.getElementById('pay-ticket-step').style.display = 'block';
 
     const fmt = dt =>
-        dt ? new Date(dt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        dt ? new Date(dt).toLocaleTimeString(appState.language === 'it' ? 'it-IT' : 'en-US', { hour: '2-digit', minute: '2-digit' })
            : '--';
 
     let durationStr = '--';
@@ -1142,7 +1197,7 @@ async function handlePayAndLeave() {
     
     const btn = document.querySelector('#pay-ticket-step .btn-primary');
     const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Elaborazione...';
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${i18n('processing_btn')}`;
     btn.disabled = true;
 
     try {
@@ -1160,13 +1215,13 @@ async function handlePayAndLeave() {
         const data = await res.json();
 
         if (res.ok && data.success) {
-            showToast(`Pagamento confermato. Buona giornata!`, 'success');
+            showToast(i18n('payment_confirmed'), 'success');
             setTimeout(() => {
-                alert(`✅ Pagamento confermato!\n\nImporto: €${activeCheckoutData.amountDue.toFixed(2)}\nSbarra aperta — Arrivederci!`);
+                alert(`✅ ${i18n('payment_confirmed')}\n\n${i18n('total_label')}: €${activeCheckoutData.amountDue.toFixed(2)}`);
                 resetCheckOutFlow();
             }, 500);
         } else {
-            showToast(data.message || 'Errore durante la conferma del pagamento', 'error');
+            showToast(data.message || i18n('loading_error'), 'error');
         }
     } catch (err) {
         showToast(err.message, 'error');

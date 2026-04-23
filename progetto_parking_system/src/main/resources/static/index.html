@@ -9,6 +9,37 @@
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        .lang-btn:hover, .lang-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .sidebar .lang-switcher {
+            position: relative;
+            top: 0;
+            right: 0;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+    </style>
 </head>
 
 <body>
@@ -17,91 +48,95 @@
     <!-- Login/Register View -->
     <!-- Login/Register View -->
     <div id="auth-view" class="view auth-container active">
+        <div class="lang-switcher">
+            <button class="lang-btn" onclick="setLanguage('it')" id="lang-it">IT</button>
+            <button class="lang-btn" onclick="setLanguage('en')" id="lang-en">EN</button>
+        </div>
         <div class="glass-panel auth-box">
             <div class="auth-header">
                 <i class="fa-solid fa-car-side logo-icon"></i>
-                <h1>Welcome to <span>ParkSync</span></h1>
-                <p>Accedi al sistema gestionale</p>
+                <h1 data-i18n="welcome_title">Welcome to <span>ParkSync</span></h1>
+                <p data-i18n="welcome_subtitle">Accedi al sistema gestionale</p>
             </div>
 
             <div class="auth-tabs">
-                <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
-                <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Registrati</button>
-                <button id="tab-gate-checkin" class="tab-btn" onclick="switchAuthTab('gate-checkin')">Check In</button>
-                <button id="tab-gate-checkout" class="tab-btn" onclick="switchAuthTab('gate-checkout')">Check Out</button>
+                <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')" data-i18n="login_tab">Login</button>
+                <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')" data-i18n="register_tab">Registrati</button>
+                <button id="tab-gate-checkin" class="tab-btn" onclick="switchAuthTab('gate-checkin')" data-i18n="checkin_tab">Check In</button>
+                <button id="tab-gate-checkout" class="tab-btn" onclick="switchAuthTab('gate-checkout')" data-i18n="checkout_tab">Check Out</button>
             </div>
 
             <!-- Login Form -->
             <form id="login-form" class="auth-form active" autocomplete="off">
                 <div class="input-group">
-                    <label for="login-username"><i class="fa-solid fa-user"></i> Username</label>
-                    <input type="text" id="login-username" required placeholder="Inserisci username">
+                    <label for="login-username"><i class="fa-solid fa-user"></i> <span data-i18n="username_label">Username</span></label>
+                    <input type="text" id="login-username" required placeholder="Inserisci username" data-i18n-placeholder="login_username_placeholder">
                 </div>
                 <div class="input-group">
-                    <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
-                    <input type="password" id="login-password" required placeholder="Inserisci password">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> <span data-i18n="password_label">Password</span></label>
+                    <input type="password" id="login-password" required placeholder="Inserisci password" data-i18n-placeholder="login_password_placeholder">
                 </div>
                 <div class="input-group" style="flex-direction:row; align-items:center; gap:8px;">
                     <input type="checkbox" id="login-remember" style="width:auto; margin:0;">
-                    <label for="login-remember" style="margin:0;">Ricordami</label>
+                    <label for="login-remember" style="margin:0;" data-i18n="remember_me">Ricordami</label>
                 </div>
-                <button type="submit" class="btn-primary">Accedi <i class="fa-solid fa-arrow-right"></i></button>
+                <button type="submit" class="btn-primary"><span data-i18n="login_btn">Accedi</span> <i class="fa-solid fa-arrow-right"></i></button>
             </form>
 
             <!-- Register Form -->
             <form id="register-form" class="auth-form">
                 <div class="input-group">
-                    <label for="reg-username"><i class="fa-solid fa-user"></i> Username</label>
-                    <input type="text" id="reg-username" required placeholder="Scegli un username">
+                    <label for="reg-username"><i class="fa-solid fa-user"></i> <span data-i18n="username_label">Username</span></label>
+                    <input type="text" id="reg-username" required placeholder="Scegli un username" data-i18n-placeholder="reg_username_placeholder">
                 </div>
                 <div class="input-group">
-                    <label for="reg-password"><i class="fa-solid fa-lock"></i> Password</label>
-                    <input type="password" id="reg-password" required minlength="6" placeholder="Almeno 6 caratteri">
+                    <label for="reg-password"><i class="fa-solid fa-lock"></i> <span data-i18n="password_label">Password</span></label>
+                    <input type="password" id="reg-password" required minlength="6" placeholder="Almeno 6 caratteri" data-i18n-placeholder="reg_password_placeholder">
                 </div>
                 <div class="input-group">
-                    <label for="reg-subscription"><i class="fa-solid fa-ticket"></i> Scegli Abbonamento</label>
+                    <label for="reg-subscription"><i class="fa-solid fa-ticket"></i> <span data-i18n="choose_subscription">Scegli Abbonamento</span></label>
                     <select id="reg-subscription"
                         style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
-                        <option value="MONTHLY">Mensile</option>
-                        <option value="QUARTERLY">Trimestrale</option>
-                        <option value="YEARLY">Annuale</option>
+                        <option value="MONTHLY" data-i18n="monthly">Mensile</option>
+                        <option value="QUARTERLY" data-i18n="quarterly">Trimestrale</option>
+                        <option value="YEARLY" data-i18n="yearly">Annuale</option>
                     </select>
                 </div>
                 <div class="input-group">
-                    <label for="reg-vehicle-type"><i class="fa-solid fa-car"></i> Tipo Veicolo</label>
+                    <label for="reg-vehicle-type"><i class="fa-solid fa-car"></i> <span data-i18n="vehicle_type">Tipo Veicolo</span></label>
                     <select id="reg-vehicle-type"
                         style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
-                        <option value="CAR">Auto Standard</option>
-                        <option value="MOTORBIKE">Moto / Scooter</option>
-                        <option value="ELECTRIC">Auto Elettrica</option>
-                        <option value="HANDICAPPED">Permesso Disabili</option>
+                        <option value="CAR" data-i18n="auto_standard">Auto Standard</option>
+                        <option value="MOTORBIKE" data-i18n="moto_scooter">Moto / Scooter</option>
+                        <option value="ELECTRIC" data-i18n="electric_car">Auto Elettrica</option>
+                        <option value="HANDICAPPED" data-i18n="handicapped_permit">Permesso Disabili</option>
                     </select>
                 </div>
-                <button type="submit" class="btn-primary btn-accent">Registrati <i
+                <button type="submit" class="btn-primary btn-accent"><span data-i18n="register_tab">Registrati</span> <i
                         class="fa-solid fa-user-plus"></i></button>
             </form>
 
             <!-- Gate Check-In Form -->
             <div id="gate-checkin-form" class="auth-form" style="max-height: 400px; overflow-y: auto;">
-                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;">Accesso
+                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;" data-i18n="occasional_access">Accesso
                     occasionale (Senza Abbonamento)</p>
                 <div id="gate-checkin-section">
                     <div class="input-group">
-                        <label for="gate-plate"><i class="fa-solid fa-car"></i> Targa</label>
-                        <input type="text" id="gate-plate" placeholder="Es. AB123CD">
+                        <label for="gate-plate"><i class="fa-solid fa-car"></i> <span data-i18n="plate_label">Targa</span></label>
+                        <input type="text" id="gate-plate" placeholder="Es. AB123CD" data-i18n-placeholder="plate_placeholder">
                     </div>
                     <div class="input-group">
-                        <label for="gate-type"><i class="fa-solid fa-truck"></i> Tipo Veicolo</label>
+                        <label for="gate-type"><i class="fa-solid fa-truck"></i> <span data-i18n="vehicle_type">Tipo Veicolo</span></label>
                         <select id="gate-type"
                             style="width:100%; padding: 0.8rem; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#fff; font-family: 'Inter', sans-serif;">
-                            <option value="CAR">Auto</option>
-                            <option value="MOTORBIKE">Moto</option>
-                            <option value="ELECTRIC">Auto Elettrica</option>
+                            <option value="CAR" data-i18n="auto">Auto</option>
+                            <option value="MOTORBIKE" data-i18n="moto">Moto</option>
+                            <option value="ELECTRIC" data-i18n="electric_car">Auto Elettrica</option>
                         </select>
                     </div>
                     <div class="input-group" style="flex-direction:row; align-items:center;">
                         <input type="checkbox" id="gate-disability" style="width:auto; margin-right: 10px;">
-                        <label for="gate-disability" style="margin:0;">Permesso Disabili</label>
+                        <label for="gate-disability" style="margin:0;" data-i18n="handicapped_permit">Permesso Disabili</label>
                     </div>
                     <button type="button" onclick="handleGateCheckIn()" class="btn-primary"
                         style="margin-top:1rem;">Check-In <i class="fa-solid fa-arrow-right-to-bracket"></i></button>
@@ -110,44 +145,44 @@
 
             <!-- Gate Check-Out Form -->
             <div id="gate-checkout-form" class="auth-form" style="max-height: 400px; overflow-y: auto;">
-                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;">Accesso
+                <p style="text-align:center; color:var(--text-muted); margin-bottom:1rem; font-size: 0.9rem;" data-i18n="occasional_access">Accesso
                     occasionale (Senza Abbonamento)</p>
                 <div id="gate-checkout-section">
-                    <h4 style="margin-bottom: 10px; text-align: center;">Fai il Check-Out</h4>
+                    <h4 style="margin-bottom: 10px; text-align: center;" data-i18n="do_checkout">Fai il Check-Out</h4>
 
                     <div id="scan-ticket-step">
                         <div class="input-group">
-                            <label for="gate-out-plate"><i class="fa-solid fa-car"></i> Targa</label>
-                            <input type="text" id="gate-out-plate" placeholder="Es. AB123CD">
+                            <label for="gate-out-plate"><i class="fa-solid fa-car"></i> <span data-i18n="plate_label">Targa</span></label>
+                            <input type="text" id="gate-out-plate" placeholder="Es. AB123CD" data-i18n-placeholder="plate_placeholder">
                         </div>
                         <div class="input-group">
-                            <label for="gate-out-qr"><i class="fa-solid fa-qrcode"></i> Token QR (Dal Check-in)</label>
-                            <input type="text" id="gate-out-qr" placeholder="Inserisci token">
+                            <label for="gate-out-qr"><i class="fa-solid fa-qrcode"></i> <span data-i18n="qr_token_label">Token QR (Dal Check-in)</span></label>
+                            <input type="text" id="gate-out-qr" placeholder="Inserisci token" data-i18n-placeholder="qr_token_placeholder">
                         </div>
                         <button type="button" onclick="handleTicketScan()" class="btn-primary"
-                            style="margin-top:1rem;">Verifica ed Esci <i
+                            style="margin-top:1rem;"><span data-i18n="verify_exit_btn">Verifica ed Esci</span> <i
                                 class="fa-solid fa-arrow-right-from-bracket"></i></button>
                     </div>
 
                     <div id="pay-ticket-step"
                         style="display: none; background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-top: 1rem; text-align: center;">
-                        <h5 style="margin-bottom: 0.5rem; color: var(--accent);">Riepilogo Pagamento</h5>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Posto: <span id="ticket-spot"
+                        <h5 style="margin-bottom: 0.5rem; color: var(--accent);" data-i18n="payment_summary">Riepilogo Pagamento</h5>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;"><span data-i18n="spot_label">Posto</span>: <span id="ticket-spot"
                                 style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Ingresso: <span id="ticket-entry-time"
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;"><span data-i18n="entry_label">Ingresso</span>: <span id="ticket-entry-time"
                                 style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Uscita: <span id="ticket-exit-time"
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;"><span data-i18n="exit_label">Uscita</span>: <span id="ticket-exit-time"
                                 style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;">Durata: <span id="ticket-duration"
+                        <p style="font-size: 0.9rem; margin-bottom: 0.3rem;"><span data-i18n="duration_label">Durata</span>: <span id="ticket-duration"
                                 style="font-weight: bold; color: #fff;"></span></p>
-                        <p style="font-size: 1.2rem; margin-top: 0.8rem;">Totale: <strong id="ticket-price"
+                        <p style="font-size: 1.2rem; margin-top: 0.8rem;"><span data-i18n="total_label">Totale</span>: <strong id="ticket-price"
                                 style="color: var(--secondary);"></strong></p>
 
                         <button type="button" onclick="handlePayAndLeave()" class="btn-primary btn-accent"
-                            style="margin-top:1rem; width: 100%;">Conferma Pagamento <i
+                            style="margin-top:1rem; width: 100%;"><span data-i18n="confirm_payment_btn">Conferma Pagamento</span> <i
                                 class="fa-solid fa-credit-card"></i></button>
                         <button type="button" onclick="resetCheckOutFlow()" class="btn-primary"
-                            style="margin-top:0.5rem; width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.2);">Annulla</button>
+                            style="margin-top:0.5rem; width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.2);" data-i18n="cancel_btn">Annulla</button>
                     </div>
                 </div>
             </div>
@@ -160,31 +195,35 @@
             <div class="sidebar-brand">
                 <i class="fa-solid fa-car-side"></i> ParkSync
             </div>
+            <div class="lang-switcher">
+                <button class="lang-btn" onclick="setLanguage('it')" id="lang-it-side">IT</button>
+                <button class="lang-btn" onclick="setLanguage('en')" id="lang-en-side">EN</button>
+            </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" onclick="loadSection('dashboard')">
-                    <i class="fa-solid fa-house"></i> Dashboard
+                    <i class="fa-solid fa-house"></i> <span data-i18n="nav_dashboard">Dashboard</span>
                 </button>
                 <button class="nav-item" onclick="loadSection('vehicles')">
-                    <i class="fa-solid fa-car"></i> I Miei Veicoli
+                    <i class="fa-solid fa-car"></i> <span data-i18n="nav_vehicles">I Miei Veicoli</span>
                 </button>
                 <button class="nav-item" onclick="loadSection('subscriptions')">
-                    <i class="fa-solid fa-id-card"></i> Abbonamenti
+                    <i class="fa-solid fa-id-card"></i> <span data-i18n="nav_subscriptions">Abbonamenti</span>
                 </button>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-info">
                     <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                    <span id="display-username">Utente</span>
+                    <span id="display-username" data-i18n="user_placeholder">Utente</span>
                 </div>
                 <button id="logout-btn" class="btn-danger-outline" onclick="logout()">
-                    <i class="fa-solid fa-right-from-bracket"></i> Esci
+                    <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="nav_logout">Esci</span>
                 </button>
             </div>
         </aside>
 
         <main class="main-content">
             <header class="top-nav">
-                <h2 id="page-title">Dashboard Overview</h2>
+                <h2 id="page-title" data-i18n="dashboard_overview">Dashboard Overview</h2>
             </header>
 
             <div class="content-area" id="main-content-area">
@@ -193,7 +232,7 @@
                     <div class="stat-card glass-panel">
                         <div class="stat-icon"><i class="fa-solid fa-car"></i></div>
                         <div class="stat-details">
-                            <h3>Veicoli Registrati</h3>
+                            <h3 data-i18n="registered_vehicles">Veicoli Registrati</h3>
                             <p id="stat-vehicles">0</p>
                         </div>
                     </div>
@@ -203,19 +242,19 @@
                 <div id="dashboard-summary-section" class="mt-4">
                     <div class="data-section">
                         <div class="section-header">
-                            <h3><i class="fa-solid fa-id-card" style="margin-right:6px;"></i>I Miei Abbonamenti Attivi</h3>
+                            <h3><i class="fa-solid fa-id-card" style="margin-right:6px;"></i><span data-i18n="active_subscriptions">I Miei Abbonamenti Attivi</span></h3>
                         </div>
                         <div class="grid-container" id="dashboard-subscriptions-grid">
-                            <p style="color:var(--text-muted); padding:1rem;">Nessun abbonamento attivo.</p>
+                            <p style="color:var(--text-muted); padding:1rem;" data-i18n="no_active_subscriptions">Nessun abbonamento attivo.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="data-section mt-4 hidden" id="vehicles-section">
                     <div class="section-header">
-                        <h3>I Miei Veicoli</h3>
+                        <h3 data-i18n="nav_vehicles">I Miei Veicoli</h3>
                         <button class="btn-primary btn-sm" onclick="openAddVehicleModal()"><i
-                                class="fa-solid fa-plus"></i> Aggiungi</button>
+                                class="fa-solid fa-plus"></i> <span data-i18n="add_btn">Aggiungi</span></button>
                     </div>
                     <div class="grid-container" id="vehicles-grid"></div>
                 </div>
@@ -223,13 +262,13 @@
                 <!-- ── ABBONAMENTI ─────────────────────────────── -->
                 <div class="data-section mt-4 hidden" id="subscriptions-section">
                     <div class="section-header">
-                        <h3><i class="fa-solid fa-id-card" style="margin-right:6px;"></i>I Miei Abbonamenti</h3>
+                        <h3><i class="fa-solid fa-id-card" style="margin-right:6px;"></i><span data-i18n="nav_subscriptions">I Miei Abbonamenti</span></h3>
                         <div style="display:flex; gap:8px;">
                             <button class="btn-primary btn-sm" style="background:var(--danger); border-color:var(--danger);" onclick="openBinModal()">
-                                <i class="fa-solid fa-trash"></i> Cestino
+                                <i class="fa-solid fa-trash"></i> <span data-i18n="bin_btn">Cestino</span>
                             </button>
                             <button class="btn-primary btn-sm" onclick="openSubscriptionModal()">
-                                <i class="fa-solid fa-plus"></i> Acquista
+                                <i class="fa-solid fa-plus"></i> <span data-i18n="buy_btn">Acquista</span>
                             </button>
                         </div>
                     </div>
@@ -245,16 +284,16 @@
         style="display:none; position:fixed; z-index:9000; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
         <div class="glass-panel auth-box" style="margin: auto; max-height:90vh; overflow-y:auto;">
             <div class="auth-header">
-                <h2>Aggiungi Veicolo</h2>
+                <h2 data-i18n="add_vehicle_title">Aggiungi Veicolo</h2>
             </div>
             <form id="add-vehicle-form" class="modal-form active">
                 <div class="input-group">
-                    <label>Targa</label>
+                    <label data-i18n="plate_label">Targa</label>
                     <input type="text" id="veh-targa" required>
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <button type="button" class="btn-danger-outline" onclick="closeAddVehicleModal()">Annulla</button>
-                    <button type="submit" class="btn-primary" style="flex:1;">Salva</button>
+                    <button type="button" class="btn-danger-outline" onclick="closeAddVehicleModal()" data-i18n="cancel_btn">Annulla</button>
+                    <button type="submit" class="btn-primary" style="flex:1;" data-i18n="save_btn">Salva</button>
                 </div>
             </form>
         </div>
@@ -266,51 +305,51 @@
         <div class="glass-panel auth-box" style="margin:auto; max-height:90vh; overflow-y:auto; width:420px;">
             <div class="auth-header">
                 <i class="fa-solid fa-id-card logo-icon"></i>
-                <h2>Rinnova Abbonamento</h2>
+                <h2 data-i18n="renew_subscription_title">Rinnova Abbonamento</h2>
             </div>
             <form id="subscription-form" class="modal-form active">
                 <div class="input-group">
-                    <label><i class="fa-solid fa-calendar"></i> Tipo Abbonamento</label>
+                    <label><i class="fa-solid fa-calendar"></i> <span data-i18n="subscription_type">Tipo Abbonamento</span></label>
                     <select id="sub-type"
                         style="width:100%;padding:0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:#fff;font-family:'Inter',sans-serif;">
-                        <option value="MONTHLY">Mensile — €49,90</option>
-                        <option value="QUARTERLY">Trimestrale — €129,90</option>
-                        <option value="YEARLY">Annuale — €449,90</option>
+                        <option value="MONTHLY"><span data-i18n="monthly">Mensile</span> — €49,90</option>
+                        <option value="QUARTERLY"><span data-i18n="quarterly">Trimestrale</span> — €129,90</option>
+                        <option value="YEARLY"><span data-i18n="yearly">Annuale</span> — €449,90</option>
                     </select>
                 </div>
 
                 <div class="input-group">
-                    <label><i class="fa-solid fa-car"></i> Tipo Veicolo</label>
+                    <label><i class="fa-solid fa-car"></i> <span data-i18n="vehicle_type">Tipo Veicolo</span></label>
                     <select id="sub-vehicle-type"
                         style="width:100%;padding:0.8rem;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.2);color:#fff;font-family:'Inter',sans-serif;">
-                        <option value="CAR">Auto Standard</option>
-                        <option value="MOTORBIKE">Moto / Scooter</option>
-                        <option value="ELECTRIC">Auto Elettrica</option>
-                        <option value="HANDICAPPED">Permesso Disabili</option>
+                        <option value="CAR" data-i18n="auto_standard">Auto Standard</option>
+                        <option value="MOTORBIKE" data-i18n="moto_scooter">Moto / Scooter</option>
+                        <option value="ELECTRIC" data-i18n="electric_car">Auto Elettrica</option>
+                        <option value="HANDICAPPED" data-i18n="handicapped_permit">Permesso Disabili</option>
                     </select>
                 </div>
 
                 <div class="input-group">
-                    <label><i class="fa-solid fa-car"></i> Veicoli da associare</label>
-                    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem;">Seleziona i veicoli
+                    <label><i class="fa-solid fa-car"></i> <span data-i18n="vehicles_to_associate">Veicoli da associare</span></label>
+                    <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem;" data-i18n="select_covered_vehicles">Seleziona i veicoli
                         coperti dall'abbonamento</p>
                     <div id="sub-vehicles-list"
                         style="display:flex;flex-direction:column;gap:0.5rem;max-height:200px;overflow-y:auto;">
-                        <p style="color:var(--text-muted);font-size:0.85rem;">Caricamento veicoli...</p>
+                        <p style="color:var(--text-muted);font-size:0.85rem;" data-i18n="loading_vehicles">Caricamento veicoli...</p>
                     </div>
                 </div>
 
                 <div
                     style="background:rgba(99,179,237,0.1);border:1px solid rgba(99,179,237,0.3);border-radius:8px;padding:0.8rem;margin-bottom:1rem;">
                     <p style="font-size:0.82rem;color:#63b3ed;margin:0;"><i class="fa-solid fa-circle-info"></i>
-                        L'abbonamento genera un QR code valido per tutto il periodo. Puoi usarlo per entrare senza
-                        pagare ogni volta.</p>
+                        <span data-i18n="subscription_info">L'abbonamento genera un QR code valido per tutto il periodo. Puoi usarlo per entrare senza
+                        pagare ogni volta.</span></p>
                 </div>
 
                 <div style="display:flex;gap:10px;">
-                    <button type="button" class="btn-danger-outline" onclick="closeSubscriptionModal()">Annulla</button>
+                    <button type="button" class="btn-danger-outline" onclick="closeSubscriptionModal()" data-i18n="cancel_btn">Annulla</button>
                     <button type="submit" class="btn-primary btn-accent" style="flex:1;">
-                        Conferma Rinnovo <i class="fa-solid fa-credit-card"></i>
+                        <span data-i18n="confirm_renewal_btn">Conferma Rinnovo</span> <i class="fa-solid fa-credit-card"></i>
                     </button>
                 </div>
             </form>
@@ -323,7 +362,7 @@
         <div class="glass-panel auth-box" style="margin:auto; max-width:400px; text-align:center;">
             <div class="auth-header">
                 <i class="fa-solid fa-qrcode logo-icon"></i>
-                <h2>Il Tuo QR Abbonamento</h2>
+                <h2 data-i18n="your_qr_title">Il Tuo QR Abbonamento</h2>
             </div>
             <div id="sub-qr-display"
                 style="background:rgba(0,0,0,0.4);border-radius:12px;padding:1rem;margin-bottom:1rem;word-break:break-all;font-family:monospace;font-size:0.75rem;color:#fff;letter-spacing:0.05em;">
@@ -332,7 +371,7 @@
                 style="width:200px; height:200px; display:none; margin:0 auto 1rem; background:#fff; padding:10px; border-radius:8px;">
             <p id="sub-validity" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;"></p>
             <p id="sub-vehicles-display" style="font-size:0.82rem;color:#63b3ed;margin-bottom:1rem;"></p>
-            <button onclick="closeSubDetailModal()" class="btn-primary" style="width:100%;">Chiudi</button>
+            <button onclick="closeSubDetailModal()" class="btn-primary" style="width:100%;" data-i18n="close_btn">Chiudi</button>
         </div>
     </div>
 
@@ -342,13 +381,14 @@
         <div class="glass-panel auth-box" style="margin:auto; max-width:800px; width:90%; max-height:80vh; overflow-y:auto;">
             <div class="auth-header">
                 <i class="fa-solid fa-trash logo-icon" style="color:var(--danger);"></i>
-                <h2>Abbonamenti Scaduti (Cestino)</h2>
+                <h2 data-i18n="expired_subscriptions_title">Abbonamenti Scaduti (Cestino)</h2>
             </div>
             <div id="bin-grid" class="grid-container" style="margin-top:1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"></div>
-            <button onclick="closeBinModal()" class="btn-primary mt-4" style="width:100%;">Chiudi</button>
+            <button onclick="closeBinModal()" class="btn-primary mt-4" style="width:100%;" data-i18n="close_btn">Chiudi</button>
         </div>
     </div>
 
+    <script src="js/translations.js"></script>
     <script src="js/app.js"></script>
 </body>
 
