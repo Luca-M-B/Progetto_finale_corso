@@ -610,6 +610,16 @@ async function handleAddVehicle(e) {
         return;
     }
 
+    const targaClean = targaRaw.toUpperCase().replace(/[\s\-]/g, '');
+
+    // Verifica locale per evitare duplicati semplici prima di inviare al server
+    const currentVehicles = [...document.querySelectorAll('#vehicles-grid span')].map(s => s.textContent.trim().replace(/[\s\-]/g, ''));
+    if (!editId && currentVehicles.includes(targaClean)) {
+        showToast(i18n('duplicate_plate_error') || "Questa targa è già presente nella tua lista", "error");
+        btn.innerHTML = i18n('save_btn');
+        return;
+    }
+
     try {
         const payload = {
             targa: targaRaw.toUpperCase().replace(/[\s\-]/g, ''),

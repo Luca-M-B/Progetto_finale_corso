@@ -87,6 +87,12 @@ public class VehicleController {
 
         // Memorizza la targa in formato pulito (senza spazi o trattini) per coerenza nel DB
         String plate = rawTarga.replace(" ", "").replace("-", "");
+        
+        // Controllo univocità della targa
+        if (service.findByTarga(plate).isPresent()) {
+            return ResponseEntity.badRequest().body("Errore: un veicolo con questa targa è già registrato nel sistema");
+        }
+
         entity.setTarga(plate);
 
         // Recupera l'utente dal database per l'associazione
@@ -120,6 +126,13 @@ public class VehicleController {
         }
 
         String plate = rawTarga.replace(" ", "").replace("-", "");
+
+        // Verifica se la nuova targa è già in uso da un ALTRO veicolo
+        java.util.Optional<Vehicle> existingWithSamePlate = service.findByTarga(plate);
+        if (existingWithSamePlate.isPresent() && !existingWithSamePlate.get().getId().equals(id)) {
+            return ResponseEntity.badRequest().body("Errore: la targa " + plate + " è già associata a un altro veicolo");
+        }
+
         entity.setTarga(plate);
 
         return service.findById(id)

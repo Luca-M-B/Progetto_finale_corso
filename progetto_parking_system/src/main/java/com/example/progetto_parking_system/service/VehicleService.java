@@ -48,6 +48,13 @@ public class VehicleService {
     }
 
     /**
+     * Cerca un veicolo tramite la sua targa.
+     */
+    public Optional<Vehicle> findByTarga(String targa) {
+        return repository.findByTarga(targa);
+    }
+
+    /**
      * Elimina un veicolo dal database in base al suo ID.
      */
     public void deleteById(Long id) {
