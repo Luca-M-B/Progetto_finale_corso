@@ -12,4 +12,5 @@ public class SubscriptionPurchaseRequest {
     private String type;           // MONTHLY, QUARTERLY, YEARLY
     private String vehicleType;    // CAR, MOTORBIKE, ELECTRIC, HANDICAPPED
     private List<Long> vehicleIds; // veicoli da includere nell'abbonamento
+    private String language;       // it, en
 }

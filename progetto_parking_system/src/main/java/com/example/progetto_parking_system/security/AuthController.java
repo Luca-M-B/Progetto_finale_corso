@@ -100,6 +100,7 @@ public class AuthController {
             SubscriptionPurchaseRequest subRequest = new SubscriptionPurchaseRequest();
             subRequest.setType(request.getSubscriptionType());
             subRequest.setVehicleType(request.getVehicleType()); // Passa il tipo veicolo scelto
+            subRequest.setLanguage(request.getLanguage());       // Passa la lingua di registrazione
             // Il purchase assegnerà automaticamente QR code, date, stato attivo e POSTO
             // RISERVATO
             subscriptionService.purchase(newUser.getUsername(), subRequest);

@@ -138,6 +138,7 @@ public class SubscriptionService {
         sub.setPricePaid(price);
         sub.setQrCode(UUID.randomUUID().toString()); // Generazione token univoco per il QR
         sub.setVehicles(vehicles);
+        sub.setLanguage(request.getLanguage() != null ? request.getLanguage().toLowerCase() : "it");
 
         subscriptionRepository.save(sub);
         return toResponse(sub, "Abbonamento attivato con successo!");
@@ -220,6 +221,7 @@ public class SubscriptionService {
                 active,
                 s.getPricePaid(),
                 plates,
+                s.getLanguage(),
                 message
         );
     }

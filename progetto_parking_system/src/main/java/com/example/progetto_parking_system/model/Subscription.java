@@ -43,6 +43,9 @@ public class Subscription {
     /** Prezzo pagato all'acquisto */
     private Double pricePaid;
 
+    /** Lingua utilizzata al momento della registrazione/acquisto (per localizzazione persistente) */
+    private String language;
+
     /**
      * Veicoli associati all'abbonamento.
      * Un abbonamento può coprire più veicoli dello stesso utente.

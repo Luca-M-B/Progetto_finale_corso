@@ -183,7 +183,10 @@
             <div class="sidebar-footer">
                 <div class="user-info">
                     <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                    <span id="display-username" data-i18n="user_placeholder">Utente</span>
+                    <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                        <span data-i18n="user_placeholder" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Utente</span>
+                        <span id="display-username" style="font-weight:600; color:#fff;"></span>
+                    </div>
                 </div>
                 <button id="logout-btn" class="btn-danger-outline" onclick="logout()">
                     <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="nav_logout">Esci</span>

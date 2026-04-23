@@ -100,6 +100,19 @@ function isValidPlate(plate) {
     return regex.test(plate.trim());
 }
 
+/**
+ * Ritorna l'icona FontAwesome corretta in base al tipo di veicolo.
+ */
+function getVehicleIcon(type) {
+    if (!type) return 'fa-car';
+    switch (type.toUpperCase()) {
+        case 'MOTORBIKE': return 'fa-motorcycle';
+        case 'ELECTRIC': return 'fa-charging-station';
+        case 'HANDICAPPED': return 'fa-wheelchair';
+        default: return 'fa-car';
+    }
+}
+
 // DOM Elements
 const views = {
     auth: document.getElementById('auth-view'),
@@ -233,7 +246,8 @@ async function handleRegister(e) {
             username: document.getElementById('reg-username').value,
             password: document.getElementById('reg-password').value,
             subscriptionType: document.getElementById('reg-subscription').value,
-            vehicleType: document.getElementById('reg-vehicle-type').value
+            vehicleType: document.getElementById('reg-vehicle-type').value,
+            language: appState.language
         };
 
         const res = await fetch(`${API_BASE}/auth/register`, {
@@ -478,7 +492,11 @@ async function fetchDashboardSubscriptions() {
             return;
         }
 
-        const typeLabel = { MONTHLY: i18n('monthly'), QUARTERLY: i18n('quarterly'), YEARLY: i18n('yearly') };
+        const getTypeLabel = (s) => {
+            const lang = s.language || 'it';
+            const typeKey = s.type ? s.type.toLowerCase() : 'nav_subscriptions';
+            return (translations[lang] && translations[lang][typeKey]) || s.type;
+        };
         const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : 'N/A';
 
         grid.innerHTML = activeSubs.map(s => `
@@ -490,14 +508,14 @@ async function fetchDashboardSubscriptions() {
                     <span style="background:rgba(72,219,152,0.2);color:#48db98;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">${i18n('active_badge')}</span>
                 </div>
                 <h3 style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">
-                    ${typeLabel[s.type] || s.type || i18n('nav_subscriptions')}
+                    ${getTypeLabel(s)}
                 </h3>
                 <div style="width:100%;background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:5px 0;">
                     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
                         <i class="fa-regular fa-calendar"></i> ${i18n('expiry_label')}: <strong>${fmtDate(s.endDate)}</strong>
                     </p>
                     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                        <i class="fa-solid fa-car-side"></i> ${i18n('vehicle_label')}: <strong>${s.vehicleType || 'N/A'}</strong>
+                        <i class="fa-solid ${getVehicleIcon(s.vehicleType)}"></i> ${i18n('vehicle_label')}: <strong>VEICOLO: ${s.vehicleType || 'N/A'}</strong>
                     </p>
                     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
                         <i class="fa-solid fa-map-pin"></i> ${i18n('spot_code_label')}: <strong style="color:#63b3ed;">${s.spotCode || '...'}</strong>
@@ -536,7 +554,7 @@ async function fetchVehicles() {
             <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem; position:relative;">
                 <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
                     <div class="stat-icon" style="width:40px;height:40px;font-size:1.2rem;background:rgba(99,179,237,0.15);">
-                        <i class="fa-solid fa-car"></i>
+                        <i class="fa-solid ${getVehicleIcon(v.tipo)}"></i>
                     </div>
                     <span style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:4px;font-size:0.85rem;font-weight:600;letter-spacing:0.05em;">
                         ${v.targa}
@@ -676,7 +694,11 @@ async function fetchSubscriptions() {
             return;
         }
 
-        const typeLabel = { MONTHLY: i18n('monthly'), QUARTERLY: i18n('quarterly'), YEARLY: i18n('yearly') };
+        const getTypeLabel = (s) => {
+            const lang = s.language || 'it';
+            const typeKey = s.type ? s.type.toLowerCase() : 'nav_subscriptions';
+            return (translations[lang] && translations[lang][typeKey]) || s.type;
+        };
         const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : 'N/A';
 
         // Verifica se esiste almeno un abbonamento attivo e aggiorna lo stato globale
@@ -706,14 +728,14 @@ async function fetchSubscriptions() {
                         ${badge}
                     </div>
                     <h3 style="color:#fff;font-size:1.1rem;margin-top:0.5rem;">
-                        ${typeLabel[s.type] || s.type || i18n('nav_subscriptions')}
+                        ${getTypeLabel(s)}
                     </h3>
                     <div style="width:100%;background:rgba(255,255,255,0.05);padding:10px;border-radius:8px;margin:5px 0;">
                         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
                             <i class="fa-regular fa-calendar"></i> ${i18n('expiry_label')}: <strong>${fmtDate(s.endDate)}</strong>
                         </p>
                         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
-                            <i class="fa-solid fa-car-side"></i> ${i18n('vehicle_label')}: <strong>${s.vehicleType || 'N/A'}</strong>
+                            <i class="fa-solid ${getVehicleIcon(s.vehicleType)}"></i> ${i18n('vehicle_label')}: <strong>VEICOLO: ${s.vehicleType || 'N/A'}</strong>
                         </p>
                         <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px;">
                             <i class="fa-solid fa-map-pin"></i> ${i18n('spot_code_label')}: <strong style="color:#63b3ed;">${s.spotCode || '...'}</strong>
@@ -802,12 +824,16 @@ async function fetchBinSubscriptions() {
             return;
         }
 
-        const typeLabel = { MONTHLY: i18n('monthly'), QUARTERLY: i18n('quarterly'), YEARLY: i18n('yearly') };
+        const getTypeLabel = (s) => {
+            const lang = s.language || 'it';
+            const typeKey = s.type ? s.type.toLowerCase() : 'nav_subscriptions';
+            return (translations[lang] && translations[lang][typeKey]) || s.type;
+        };
         const fmtDate = d => d ? new Date(d).toLocaleDateString(appState.language === 'it' ? 'it-IT' : 'en-US') : '—';
 
         grid.innerHTML = subs.map(s => `
             <div class="stat-card glass-panel" style="flex-direction:column;align-items:flex-start;gap:0.5rem;border-color:rgba(239,68,68,0.2);">
-                <h3 style="color:#fff;font-size:1rem;margin:0;">${typeLabel[s.type] || s.type}</h3>
+                <h3 style="color:#fff;font-size:1rem;margin:0;">${getTypeLabel(s)}</h3>
                 <p style="font-size:0.75rem;color:var(--text-muted);margin:0;">
                     ${i18n('expired_at')}: <strong>${fmtDate(s.endDate)}</strong>
                 </p>
@@ -876,7 +902,7 @@ async function openSubscriptionModal() {
         listEl.innerHTML = vehicles.map(v => `
             <label style="display:flex;align-items:center;gap:0.6rem;background:rgba(255,255,255,0.05);padding:0.5rem 0.8rem;border-radius:8px;cursor:pointer;">
                 <input type="checkbox" name="sub-vehicle" value="${v.id}" style="width:auto;">
-                <span><strong>${v.targa}</strong> — ${i18n(v.tipo.toLowerCase()) || v.tipo}</span>
+                <span><strong>${v.targa}</strong> — <i class="fa-solid ${getVehicleIcon(v.tipo)}" style="width:20px;"></i> ${i18n(v.tipo.toLowerCase()) || v.tipo}</span>
             </label>
         `).join('');
     } catch {
@@ -914,7 +940,8 @@ async function handlePurchaseSubscription(e) {
         const payload = {
             type: document.getElementById('sub-type').value,
             vehicleType: document.getElementById('sub-vehicle-type').value,
-            vehicleIds: selectedVehicles
+            vehicleIds: selectedVehicles,
+            language: appState.language
         };
 
         const res = await fetchWithAuth('/api/subscriptions', {

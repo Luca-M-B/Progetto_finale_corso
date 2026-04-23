@@ -15,6 +15,7 @@ public class RegisterRequest {
 
     private String subscriptionType; // e.g. MONTHLY, QUARTERLY, YEARLY
     private String vehicleType;      // CAR, MOTORBIKE, ELECTRIC, HANDICAPPED
+    private String language;         // it, en
 
     public String getUsername() {
         return username;
@@ -46,5 +47,13 @@ public class RegisterRequest {
 
     public void setVehicleType(String vehicleType) {
         this.vehicleType = vehicleType;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 }

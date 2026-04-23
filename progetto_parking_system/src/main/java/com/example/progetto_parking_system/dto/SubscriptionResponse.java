@@ -23,5 +23,6 @@ public class SubscriptionResponse {
     private Boolean active;
     private Double pricePaid;
     private List<String> vehiclePlates; // targhe dei veicoli associati
+    private String language;
     private String message;
 }
