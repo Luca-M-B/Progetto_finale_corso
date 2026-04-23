@@ -219,7 +219,7 @@ async function handleLogin(e) {
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        btn.innerHTML = `${i18n('login_btn')} <i class="fa-solid fa-arrow-right"></i>`;
+        btn.innerHTML = `<span data-i18n="login_btn">${i18n('login_btn')}</span> <i class="fa-solid fa-arrow-right"></i>`;
     }
 }
 
@@ -253,7 +253,7 @@ async function handleRegister(e) {
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        btn.innerHTML = `${i18n('register_tab')} <i class="fa-solid fa-user-plus"></i>`;
+        btn.innerHTML = `<span data-i18n="register_tab">${i18n('register_tab')}</span> <i class="fa-solid fa-user-plus"></i>`;
     }
 }
 

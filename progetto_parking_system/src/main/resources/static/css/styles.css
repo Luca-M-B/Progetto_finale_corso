@@ -56,6 +56,12 @@ span {
     color: var(--primary);
 }
 
+button span,
+.nav-item span,
+.input-group label span {
+    color: inherit;
+}
+
 /* Glassmorphism */
 .glass-panel {
     background: var(--glass-bg);
@@ -89,6 +95,43 @@ span {
     padding: 2.5rem;
     transform: translateY(0);
     animation: fadeUp 0.6s ease-out forwards;
+}
+
+.lang-switcher {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.lang-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
+
+.lang-btn:hover, .lang-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.sidebar .lang-switcher {
+    position: relative;
+    top: 0;
+    left: 0;
+    transform: none;
+    margin-bottom: 20px;
+    justify-content: center;
 }
 
 @keyframes fadeUp {
