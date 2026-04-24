@@ -1,60 +1,44 @@
-# ParkSync - Smart Parking Management System 🚗💨
+# ParkSync
+# Smart Parking Management System
 
-**ParkSync** è una soluzione enterprise all'avanguardia per la gestione intelligente e automatizzata di parcheggi multipiano. Sviluppato come progetto finale di eccellenza, integra logiche di business complesse con una user experience premium, offrendo un ecosistema completo per utenti e gestori.
+## Stack Tecnologico
+*   Backend: Java 17, Spring Boot 3, Spring Security (Session-based Auth)
+*   Database: MySQL 8.0
+*   Frontend: HTML5, CSS3 (Vanilla), JavaScript (ES6+)
+*   Integrazioni: ZXing per la generazione di QR Code
+*   Infrastruttura: Docker, Docker Compose
+*   Build Tool: Maven
 
----
+## Architettura e Scelte Tecniche
+Il sistema adotta un'architettura Model-View-Controller (MVC) dove Spring Boot gestisce la logica di backend e l'esposizione delle API REST, mentre il frontend comunica in modo asincrono per garantire una User Experience fluida.
 
-## 🎯 Obiettivo del Progetto
-L'obiettivo di ParkSync è rivoluzionare la gestione della sosta urbana attraverso l'automazione. La piattaforma risolve tre criticità fondamentali:
-1.  **Automazione dell'Accesso**: Utilizzo di QR Code dinamici e riconoscimento targhe per un'esperienza "touchless".
-2.  **Gestione Smart degli Abbonamenti**: Assegnazione automatica di posti riservati garantiti basati sulla tipologia di veicolo.
-3.  **Ottimizzazione dei Flussi**: Algoritmi di tariffazione dinamica che incentivano la mobilità sostenibile (sconti per veicoli elettrici e moto).
+*   Sicurezza: Implementazione di Spring Security con autenticazione basata su sessione per proteggere i dati sensibili degli utenti e degli abbonamenti.
+*   Logica di Business: Calcolo dinamico della tariffazione basato sulla tipologia di veicolo (sconti per elettrico e moto) e gestione automatizzata degli Spot riservati per gli abbonati.
+*   Internazionalizzazione: Sistema "i18n" implementato nel frontend per il supporto completo alla lingua italiana e inglese.
+*   Data Layer: Utilizzo di Spring Data JPA per l'astrazione del database e gestione delle relazioni complesse tra Utenti, Veicoli, Abbonamenti e Posti Auto.
 
----
+## Configurazione iniziale
+Per avviare l'intero ecosistema ParkSync, assicurarsi di avere Docker e Docker Compose installati sul sistema.
 
-## 🛠️ Stack Tecnologico
-Il progetto è stato costruito utilizzando le tecnologie più robuste e scalabili del panorama software attuale:
-
-*   **Backend**: Java 17 con **Spring Boot 3.4**, Spring Security (Session-based Auth), Spring Data JPA.
-*   **Database**: **MySQL 8.0** con gestione transazionale e sincronizzazione temporale localizzata.
-*   **Frontend**: Architettura Single Page Application (SPA) sviluppata in **Vanilla JavaScript (ES6+)**, HTML5 e CSS3 moderno (Glassmorphism).
-*   **Infrastruttura**: Completamente containerizzato tramite **Docker** e gestito con **Docker Compose** per una distribuzione immediata e consistente.
-*   **Strumenti**: Maven per la build automation, FontAwesome 6 per l'iconografia, e motori di validazione Regex personalizzati.
-
----
-
-## 🚀 Guida Rapida all'Avvio
-ParkSync è pronto all'uso in pochi secondi grazie alla sua configurazione Docker:
-
-1.  **Clona il repository**:
-    ```bash
-    git clone https://github.com/tuo-username/progetto_parking_system.git
-    cd progetto_parking_system
-    ```
-2.  **Avvia lo stack**:
-    ```bash
+1.  Clonare il repository:
+    git clone https://github.com/Luca-M-B/Progetto_ParkSync
+2.  Accedere alla directory del progetto:
+    cd Progetto_ParkSync
+3.  Avviare i container:
     docker-compose up --build -d
-    ```
-3.  **Accedi alla piattaforma**:
-    *   **Web App**: [http://localhost:8082](http://localhost:8082)
-    *   **Amministrazione DB**: [http://localhost:8081](http://localhost:8081)
+4.  Utilizzo:
+    - Web Application: http://localhost:8082
+    - Database Administration (phpMyAdmin): http://localhost:8081
 
----
+## Limitazioni del progetto
+*   Simulazione Hardware: L'interazione con i sensori di parcheggio e le telecamere per il riconoscimento delle targhe è simulata tramite logica software.
+*   Gateway di Pagamento: Le transazioni per l'acquisto di abbonamenti non sono collegate a circuiti bancari reali; il processo è puramente dimostrativo.
+*   Notifiche: Il sistema non invia notifiche push o email reali, limitandosi a feedback visuali all'interno della piattaforma.
 
-## 💡 Approfondimenti Tecnici e Funzionali
-
-### 🧠 Logiche di Business Avanzate
-*   **Riconoscimento Targhe Intelligente**: Il sistema riconosce automaticamente gli abbonati al gate d'ingresso e d'uscita tramite la targa, consentendo l'accesso e l'uscita gratuita senza la necessità di ticket o QR Code fisici.
-*   **Algoritmo Tariffario Dinamico**: Il costo della sosta (€3.50/ora base) viene calcolato al minuto e applica sconti cumulativi:
-    *   **Elettrico**: -20%
-    *   **Moto**: -30%
-    *   **Disabilità**: -50%
-*   **Posto Riservato Garantito**: Ogni abbonato riceve un posto auto esclusivo (Spot) che rimane bloccato per tutta la durata del piano, assicurando la disponibilità anche in condizioni di parcheggio pieno.
-
-### 🛡️ Sicurezza e UX
-*   **Internazionalizzazione (i18n)**: Interfaccia bilingue (IT/EN) con persistenza della lingua di registrazione per i documenti contrattuali.
-*   **Design Premium**: L'interfaccia utilizza effetti di trasparenza, micro-animazioni e un sistema di icone dinamiche che si adattano al tipo di veicolo rilevato.
-*   **Integrità dei Dati**: Implementazione di meccanismi di "Soft Delete" per gli abbonamenti e isolamento dei dati per ogni sessione utente.
-
----
-*Sviluppato con passione per ridefinire il futuro della smart mobility.*
+## Roadmap per scalabilità e sviluppi futuri
+*   Integrazione Hardware: Collegamento a sistemi reali di riconoscimento targhe (LPR) e sensori IoT per il monitoraggio degli stalli in tempo reale.
+*   Pagamenti Reali: Integrazione di SDK come Stripe o PayPal per la gestione sicura dei pagamenti online.
+*   Microservizi: Refactoring dell'architettura in microservizi per separare la gestione utenti, il motore di tariffazione e il monitoraggio fisico dei parcheggi.
+*   App Mobile: Sviluppo di un'applicazione nativa per permettere agli utenti di gestire il proprio profilo e visualizzare la disponibilità del parcheggio in mobilità.
+*   Servizi Extra: Integrare servizi extra come la possibilità di ricaricare il proprio veicolo elettrico presso le colonnine di ricarica presenti nel parcheggio, servizio di lavaggio auto, serivizi taxi / navetta (sfruttare API di partner esterni per offrire tali servizi).
+*   Intelligenza Artificiale: Implementazione di un sistema di intelligenza artificiale per l'ottimizzazione dei prezzi e la gestione dinamica degli stalli, massimizzando i profitti e garantendo la soddisfazione dei clienti.
